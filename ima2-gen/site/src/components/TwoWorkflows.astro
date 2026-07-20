@@ -1,0 +1,55 @@
+---
+import Screenshot from './Screenshot.astro';
+import { t, type Lang } from '../i18n/strings';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+
+<section class="std workflows" id="workflows">
+  <div class="frame">
+    <div class="section-tag reveal" style="--i:0">{t(lang, 'workflows.tag')}</div>
+    <h2 class="h-section section-h reveal" style="--i:1">
+      {t(lang, 'workflows.h.before')}<span class="prism-text">{t(lang, 'workflows.h.em')}</span>
+    </h2>
+    <p class="section-lede reveal" style="--i:2">{t(lang, 'workflows.lede')}</p>
+    <div class="workflow reveal" style="--i:3">
+      <span class="workflow-number outline-text" aria-hidden="true">01</span>
+      <div class="workflow-shot shot-one"><Screenshot src="screenshots/classic-mode.png" alt={t(lang, 'workflows.classic.alt')} aspect="16/10" eager /></div>
+      <div class="workflow-copy">
+        <div class="label">{t(lang, 'workflows.classic.label')}</div>
+        <h3>{t(lang, 'workflows.classic.h')}</h3>
+        <p>{t(lang, 'workflows.classic.body')}</p>
+      </div>
+    </div>
+    <div class="workflow workflow-reverse reveal" style="--i:4">
+      <span class="workflow-number outline-text" aria-hidden="true">02</span>
+      <div class="workflow-shot shot-two"><Screenshot src="screenshots/node-graph-branching.png" alt={t(lang, 'workflows.node.alt')} aspect="16/10" eager /></div>
+      <div class="workflow-copy">
+        <div class="label">{t(lang, 'workflows.node.label')}</div>
+        <h3>{t(lang, 'workflows.node.h')}</h3>
+        <p>{t(lang, 'workflows.node.body')}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .workflows { overflow: clip; }
+  .section-lede { max-width: 760px; }
+  .workflow { position: relative; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .7fr); align-items: center; gap: 64px; margin-top: 96px; }
+  .workflow-reverse { grid-template-columns: minmax(260px, .7fr) minmax(0, 1.45fr); }
+  .workflow-reverse .workflow-shot { grid-column: 2; }
+  .workflow-reverse .workflow-copy { grid-column: 1; grid-row: 1; }
+  .workflow-number { position: absolute; z-index: -1; top: -72px; right: -4px; font-family: var(--font-display); font-size: 148px; font-weight: 700; line-height: 1; }
+  .workflow-reverse .workflow-number { right: auto; left: -4px; }
+  .workflow-shot { position: relative; transform: rotate(-2deg); transition: transform 420ms cubic-bezier(.16,1,.3,1); }
+  .shot-two { transform: rotate(2deg); }
+  .workflow:hover .workflow-shot { transform: rotate(0deg); }
+  .workflow-shot :global(.screenshot) { box-shadow: 0 28px 80px rgba(0,0,0,.38); }
+  .label { margin-bottom: 14px; color: var(--text-dim); font: 500 11px/1.2 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+  .workflow-copy h3 { margin: 0 0 18px; font: 600 32px/1.05 var(--font-display); letter-spacing: 0; text-wrap: balance; }
+  .workflow-copy p { margin: 0; color: var(--text-dim); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
+  @media (max-width: 900px) { .workflow, .workflow-reverse { grid-template-columns: 1fr; gap: 28px; margin-top: 76px; } .workflow-reverse .workflow-shot, .workflow-reverse .workflow-copy { grid-column: 1; grid-row: auto; } .workflow-reverse .workflow-shot { order: 1; } .workflow-reverse .workflow-copy { order: 2; } .workflow-number, .workflow-reverse .workflow-number { top: -58px; right: 0; left: auto; font-size: 112px; } }
+  @media (max-width: 480px) { .workflow { margin-top: 64px; } .workflow-number, .workflow-reverse .workflow-number { top: -42px; font-size: 82px; } .workflow-copy h3 { font-size: 26px; } .workflow-copy p { font-size: 15px; } }
+</style>

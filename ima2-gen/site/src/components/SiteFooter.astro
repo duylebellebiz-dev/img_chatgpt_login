@@ -1,0 +1,39 @@
+---
+import { t, type Lang } from '../i18n/strings';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const enHref = `${base}/?lang=en`;
+const koHref = `${base}/ko/?lang=ko`;
+const jaReadme = 'https://github.com/lidge-jun/ima2-gen/blob/main/docs/README.ja.md';
+const zhReadme = 'https://github.com/lidge-jun/ima2-gen/blob/main/docs/README.zh-CN.md';
+---
+
+<footer class="site-footer">
+  <div class="frame">
+    <div class="wordmark outline-text reveal" style="--i:0" aria-hidden="true">IMA2</div>
+    <div class="footer-row reveal" style="--i:1">
+      <div class="meta">{t(lang, 'footer.line1')}<br />{t(lang, 'footer.line2')}<br />{t(lang, 'footer.line3')}</div>
+      <ul class="lang" aria-label={t(lang, 'footer.lang.aria')}>
+        <li>{lang === 'en' ? <span aria-current="true">en</span> : <a href={enHref}>en</a>}</li>
+        <li>{lang === 'ko' ? <span aria-current="true">한국어</span> : <a href={koHref}>한국어</a>}</li>
+        <li><a href={jaReadme} target="_blank" rel="noopener">日本語</a></li>
+        <li><a href={zhReadme} target="_blank" rel="noopener">简体中文</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer { padding: 24px 0 72px; overflow: clip; }
+  .wordmark { width: 100%; font: 700 180px/.85 var(--font-display); letter-spacing: 0; white-space: nowrap; }
+  .footer-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; flex-wrap: wrap; margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--line); }
+  .meta { color: var(--muted); font: 400 11px/1.8 var(--font-mono); }
+  .lang { list-style: none; display: flex; flex-wrap: wrap; gap: 16px; margin: 0; padding: 0; color: var(--text-dim); font: 400 11px/1.4 var(--font-mono); }
+  .lang a, .lang span { padding-bottom: 3px; border-bottom: 1px solid var(--line); color: inherit; transition: opacity 180ms ease; }
+  .lang a:hover { opacity: .62; }
+  .lang span[aria-current] { color: var(--text); border-color: var(--text); }
+  @media (max-width: 1100px) { .wordmark { font-size: 140px; } }
+  @media (max-width: 768px) { .wordmark { font-size: 92px; } }
+  @media (max-width: 480px) { .wordmark { font-size: 68px; } .footer-row { align-items: flex-start; flex-direction: column; } }
+</style>

@@ -1,0 +1,20 @@
+{
+  "id": "clean-report-square",
+  "name": "Clean Report Square",
+  "description": "Editorial report-style square template for clear title, visual, and CTA hierarchy.",
+  "authoringLabel": "Clean editorial report",
+  "size": "2048x2048",
+  "recommendedOutputSizes": ["1024x1024", "2048x2048"],
+  "previewFilename": "preview.png",
+  "baseFilename": "base.png",
+  "stylePrompt": "Clean Korean card news report layout, white editorial surface, subtle grid, restrained navy accent, large safe title area, clear central visual slot, minimal decoration.",
+  "negativePrompt": "busy layout, tiny text, watermark, signature, excessive decoration, cluttered typography",
+  "slots": [
+    { "id": "title", "kind": "text", "textKind": "headline", "label": "Top title", "placement": "top-center", "x": 160, "y": 160, "w": 1728, "h": 260, "required": true, "maxChars": 26, "safeArea": true },
+    { "id": "visual", "kind": "image", "label": "Main visual area", "placement": "center", "x": 160, "y": 500, "w": 1728, "h": 980, "required": true, "safeArea": false },
+    { "id": "cta", "kind": "text", "textKind": "cta", "label": "Bottom CTA", "placement": "bottom-center", "x": 160, "y": 1620, "w": 1728, "h": 260, "required": false, "maxChars": 32, "safeArea": true }
+  ],
+  "palette": ["white", "navy", "blue"],
+  "typography": { "headline": "bold sans", "body": "clean sans" },
+  "recommendedRoleNodeIds": ["mid-5", "short-3"]
+}

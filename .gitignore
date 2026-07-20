@@ -27,6 +27,7 @@ credentials.*.json
 .agents/
 .ima2/
 .codexclaw/
+.git-backups/
 
 # ---------------------------------------------------------------------------
 # Dependencies and virtual environments

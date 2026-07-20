@@ -1,0 +1,87 @@
+/* Phase 030 — Left navigation rail (desktop) / bottom tab bar (mobile). */
+
+.nav-rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 52px;
+  height: 100dvh;
+  padding: 8px 0;
+  background: var(--bg);
+  border-right: 1px solid var(--hairline-soft);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.nav-rail__top,
+.nav-rail__bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-rail__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav-rail__btn:hover {
+  color: var(--text);
+  background: var(--control-hover);
+}
+
+.nav-rail__btn.is-active {
+  color: var(--accent-bright);
+  background: var(--accent-soft);
+}
+
+/* ── Mobile: bottom tab bar ── */
+
+.nav-rail--mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: space-around;
+  width: auto;
+  height: auto;
+  padding:
+    6px
+    max(8px, env(safe-area-inset-right))
+    max(6px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+  border-right: none;
+  border-top: 1px solid var(--hairline-soft);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 200;
+}
+
+.nav-rail--mobile .nav-rail__btn {
+  width: 44px;
+  height: 44px;
+}
+
+/* Desktop: hide on mobile */
+@media (max-width: 800px) {
+  .nav-rail:not(.nav-rail--mobile) {
+    display: none;
+  }
+}
+
+/* Mobile: hide desktop rail, show mobile tab bar */
+@media (min-width: 801px) {
+  .nav-rail--mobile {
+    display: none;
+  }
+}

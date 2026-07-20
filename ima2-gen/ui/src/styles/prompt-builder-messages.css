@@ -1,0 +1,270 @@
+.prompt-builder__message {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--bg) 74%, var(--surface));
+}
+
+.prompt-builder__message--assistant {
+  border-color: color-mix(in srgb, var(--border-strong) 64%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 74%, transparent), transparent 92%),
+    color-mix(in srgb, var(--bg) 62%, var(--surface));
+}
+
+.prompt-builder__message--user {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+}
+
+.prompt-builder__message-role {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.prompt-builder__message p {
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.prompt-builder__structured-prompts {
+  display: grid;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.prompt-builder__structured-summary,
+.prompt-builder__structured-notes {
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 52%, var(--border));
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 82%, transparent), transparent 90%),
+    color-mix(in srgb, var(--bg) 48%, transparent);
+  color: color-mix(in srgb, var(--text) 90%, var(--text-dim)) !important;
+  font-weight: 620;
+}
+
+.prompt-builder__structured-notes {
+  border-style: dashed;
+  color: var(--text-dim) !important;
+  font-weight: 560;
+}
+
+.prompt-builder__structured-card {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 28%, transparent), transparent 88%),
+    color-mix(in srgb, var(--surface-2) 78%, var(--bg));
+}
+
+.prompt-builder__structured-card-header,
+.prompt-builder__structured-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.prompt-builder__structured-card-header {
+  justify-content: space-between;
+}
+
+.prompt-builder__structured-card-header strong {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.prompt-builder__structured-card-header span {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.prompt-builder__structured-actions button {
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.prompt-builder__structured-actions button:hover,
+.prompt-builder__structured-actions button:focus-visible {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.prompt-builder__message-attachments,
+.prompt-builder__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prompt-builder__message-attachment,
+.prompt-builder__attachment {
+  max-width: 100%;
+  min-width: 0;
+  display: inline-grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.prompt-builder__message-attachment {
+  grid-template-columns: 26px minmax(0, 1fr);
+  max-width: 100%;
+}
+
+.prompt-builder__message-attachment img,
+.prompt-builder__attachment img {
+  width: 26px;
+  height: 26px;
+  display: block;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.prompt-builder__message-attachment > span,
+.prompt-builder__attachment > span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.prompt-builder__message-attachment em,
+.prompt-builder__attachment em {
+  min-width: 0;
+  overflow: hidden;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prompt-builder__attachment button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.prompt-builder__attachment button:hover,
+.prompt-builder__attachment button:focus-visible {
+  border-color: color-mix(in srgb, #ff4d4d 70%, var(--border));
+  color: #ff6b6b;
+}
+
+.prompt-builder__composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.prompt-builder__attach,
+.prompt-builder__clear,
+.prompt-builder__send {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.prompt-builder__attach {
+  min-width: 30px;
+  font-family: var(--mono);
+  font-weight: 800;
+}
+
+.prompt-builder__attach:hover:not(:disabled),
+.prompt-builder__clear:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.prompt-builder__composer {
+  display: grid;
+  gap: 8px;
+}
+
+.prompt-builder__composer textarea {
+  width: 100%;
+  min-height: 64px;
+  max-height: 104px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--bg) 72%, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+}
+
+.prompt-builder__composer textarea:focus {
+  border-color: var(--border-strong);
+}
+
+.prompt-builder__send {
+  border-color: transparent;
+  background: var(--accent-bright);
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+
+.prompt-builder__attach:disabled,
+.prompt-builder__clear:disabled,
+.prompt-builder__send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

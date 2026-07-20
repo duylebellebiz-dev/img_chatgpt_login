@@ -1,0 +1,512 @@
+// All localStorage keys this store touches MUST be listed in
+// ./persistenceRegistry.ts. The contract test
+// tests/settings-persistence-contract.test.js enforces this invariant.
+// Legacy generation-controls contract: GENERATION_DEFAULTS_STORAGE_KEY = "ima2.generationDefaults".
+import { create } from "zustand";
+import type { VideoResolutionUI } from "../types";
+import { getBrowserId } from "../lib/api";
+import {
+  isGrokImageModel,
+} from "../lib/imageModels";
+import {
+  GALLERY_DEFAULT_SCOPE_STORAGE_KEY,
+  GALLERY_SCOPE_STORAGE_KEY,
+} from "./persistenceRegistry";
+import { applySelectedNodeIds } from "../lib/nodeSelection";
+import { loadLocale, saveLocale } from "../i18n";
+import {
+  loadRightPanelOpen,
+  loadUIMode,
+  loadHistoryStripLayout,
+  loadGalleryScope,
+  loadCanvasExportBackground,
+  loadImageModel,
+  loadReasoningEffort,
+  loadWebSearchEnabled,
+  loadVideoDefaults,
+  saveVideoDefaults,
+  loadGenerationDefaults,
+} from "./storePersistence";
+import {
+  HISTORY_LIMIT,
+  DEFAULT_REFERENCE_IMAGE_LIMIT,
+  saveInFlight,
+} from "./storeHelpers";
+import { syncCapabilitiesImpl } from "./storeCapabilitiesImpl";
+import {
+  scheduleGraphSaveImpl,
+  flushGraphSaveImpl,
+  addHistory,
+} from "./storeGraphSave";
+import {
+  runGenerateNodeInPlaceImpl,
+  runNodeBatchImpl,
+} from "./storeNodeGenImpl";
+import {
+  generateMultimodeImpl,
+  runGenerateImpl,
+} from "./storeGenImpl";
+import {
+  runVideoGenerateImpl,
+  animateImageImpl,
+} from "./storeVideoImpl";
+import {
+  startInFlightPollingImpl,
+  reconcileInflightImpl,
+} from "./storeInflightImpl";
+import {
+  addRootNodeImpl,
+  createRootNodeFromHistoryItemImpl,
+  addChildNodeImpl,
+  addSiblingNodeImpl,
+  addChildNodeAtImpl,
+  duplicateBranchRootImpl,
+  updateNodePromptImpl,
+  deleteNodeImpl,
+  deleteNodesImpl,
+  disconnectEdgesImpl,
+  connectNodesImpl,
+} from "./storeGraphNodeImpl";
+import {
+  addNodeReferencesImpl, addNodeReferenceDataUrlImpl,
+  addNodeReferenceFromUrlImpl,
+  removeNodeReferenceImpl, clearNodeReferencesImpl,
+} from "./storeNodeRefImpl";
+import {
+  loadOlderHistoryImpl,
+  loadFavoriteHistoryImpl,
+  loadOlderFavoriteHistoryImpl,
+  selectHistoryImpl,
+  showHistorySequenceImpl,
+  selectHistoryShortcutTargetImpl,
+  trashHistoryItemImpl,
+  trashHistorySequenceImpl,
+  restorePendingTrashImpl,
+  permanentlyDeleteHistoryItemImpl,
+  removeFromHistoryImpl,
+  addHistoryItemImpl,
+  importLocalImageToHistoryImpl,
+  hydrateHistoryImpl,
+} from "./storeHistoryImpl";
+import {
+  loadSessionsImpl,
+  switchSessionImpl,
+  reconcileGraphPendingImpl,
+  createAndSwitchSessionImpl,
+  renameCurrentSessionImpl,
+  deleteSessionByIdImpl,
+} from "./storeSessionImpl";
+import {
+  addReferencesImpl,
+  readDroppedImageMetadataImpl,
+  applyMetadataRestoreImpl,
+  removeReferenceImpl,
+  clearReferencesImpl,
+  attachCanvasVersionReferenceImpl,
+  useCurrentAsReferenceImpl,
+  useImageAsReferenceImpl,
+} from "./storeReferenceImpl";
+import {
+  setProviderImpl, setQualityImpl, setSizePresetImpl, setCustomSizeImpl,
+  setGrokAspectRatioImpl, setGrokResolutionImpl, setFormatImpl, setModerationImpl,
+  setImageModelImpl, selectVideoModelImpl, activeVideoRefCountImpl,
+  setReasoningEffortImpl, setWebSearchEnabledImpl, setCountImpl,
+  setMultimodeImpl, setMultimodeMaxImagesImpl, setPromptModeImpl, setPromptImpl,
+  getResolvedSizeImpl,
+} from "./storeSettingsImpl";
+import {
+  insertPromptToComposerImpl, removeInsertedPromptFromComposerImpl,
+  moveInsertedPromptInComposerImpl, clearInsertedPromptsImpl,
+  loadPromptLibraryImpl, savePromptToLibraryImpl, deletePromptFromLibraryImpl,
+  togglePromptFavoriteImpl, importPromptsToLibraryImpl, toggleGalleryFavoriteImpl,
+} from "./storePromptImpl";
+import {
+  generateImpl, cancelMultimodeImpl, confirmCustomSizeAdjustmentImpl,
+  generateNodeImpl, generateNodeInPlaceImpl, generateNodeVariationImpl,
+  runGenerateNodeImpl,
+} from "./storeGenerateEntryImpl";
+import {
+  cancelInFlightJobImpl, syncFromStorageImpl, applyMergedCanvasImageImpl,
+  addReferenceDataUrlImpl, addMetadataRestoreAsReferenceImpl,
+  toggleRightPanelImpl, setGalleryScopeImpl, setGalleryDefaultScopeImpl,
+  setUIModeImpl, setHistoryStripLayoutImpl,
+  showToastImpl, dismissToastImpl, showErrorCardImpl, dismissErrorCardImpl,
+  setGraphNodesImpl, setGraphEdgesImpl, toggleNodeSelectionModeImpl,
+  selectNodeGraphImpl, cancelNodeBatchImpl, setCanvasPanImpl,
+  setCanvasExportBackgroundImpl, setCanvasExportMatteColorImpl,
+} from "./storeUIImpl";
+import {
+  loadAssetsImpl, loadMoreAssetsImpl, setAssetsFiltersImpl, saveToAssetsImpl,
+  updateAssetItemImpl, deleteAssetItemImpl, createAssetFolderImpl,
+  renameAssetFolderImpl, moveAssetFolderImpl, deleteAssetFolderImpl,
+} from "./storeAssetsImpl";
+import { createPresetSlice } from "./storePresetImpl";
+
+export type { GalleryScope, ComposeSheetTab, ImageNodeStatus, ImageNodeData, GraphNode, GraphEdge, MultimodeSequenceState, AssetItem, AssetFolder, AssetsFilters } from "./storeTypes";
+export { flushGraphSaveBeacon, selectCurrentSessionId } from "./storeGraphSave";
+import type { AppState } from "./storeTypes";
+const storedGenerationDefaults = loadGenerationDefaults();
+const storedImageModel = loadImageModel();
+const storedVideoDefaults = loadVideoDefaults();
+const initialProvider =
+  storedVideoDefaults.model ? "grok" :
+  isGrokImageModel(storedImageModel) ? "grok" : (storedGenerationDefaults.provider ?? "oauth") === "grok" ? "oauth" : (storedGenerationDefaults.provider ?? "oauth");
+
+export const useAppStore = create<AppState>((set, get, store) => ({
+  ...createPresetSlice(set, get, store),
+  assets: [],
+  assetsFolders: [],
+  assetsTags: [],
+  assetsLoading: false,
+  assetsCursor: null,
+  assetsFilters: { kind: null, folderId: null, tag: null, q: "" },
+  loadAssets: (reset) => loadAssetsImpl(reset, set, get),
+  loadMoreAssets: () => loadMoreAssetsImpl(set, get),
+  setAssetsFilters: (patch) => setAssetsFiltersImpl(patch, set, get),
+  saveToAssets: (item) => saveToAssetsImpl(item, set, get),
+  updateAssetItem: (id, patch) => updateAssetItemImpl(id, patch, set),
+  deleteAssetItem: (id) => deleteAssetItemImpl(id, set),
+  createAssetFolder: (name, parentId) => createAssetFolderImpl(name, parentId, set),
+  renameAssetFolder: (id, name) => renameAssetFolderImpl(id, name, set),
+  moveAssetFolder: (id, parentId) => moveAssetFolderImpl(id, parentId, set),
+  deleteAssetFolder: (id) => deleteAssetFolderImpl(id, set),
+  provider: initialProvider,
+  quality: storedGenerationDefaults.quality ?? "medium",
+  sizePreset: storedGenerationDefaults.sizePreset ?? "1024x1024",
+  customW: storedGenerationDefaults.customW ?? 1920,
+  customH: storedGenerationDefaults.customH ?? 1088,
+  grokAspectRatio: (storedGenerationDefaults as any).grokAspectRatio ?? "1:1",
+  grokResolution: (storedGenerationDefaults as any).grokResolution ?? "1k",
+  format: storedGenerationDefaults.format ?? "png",
+  moderation: storedGenerationDefaults.moderation ?? "low",
+  count: storedGenerationDefaults.count ?? 1,
+  multimode: storedGenerationDefaults.multimode ?? false,
+  multimodeMaxImages: storedGenerationDefaults.multimodeMaxImages ?? 4,
+  multimodeSequences: {},
+  activeFlightIds: new Set(),
+  multimodePreviewFlightId: null,
+  promptMode: storedGenerationDefaults.promptMode ?? "auto",
+  prompt: storedGenerationDefaults.prompt ?? "",
+  insertedPrompts: storedGenerationDefaults.insertedPrompts ?? [],
+  referenceImages: [],
+  referenceLimit: DEFAULT_REFERENCE_IMAGE_LIMIT,
+  providerUrlReference: null,
+  canvasReferenceImage: null,
+
+  // Workspace Profile
+  workspaceProfile: ((): import("../lib/workspaceProfile").WorkspaceProfile => {
+    try { const v = localStorage.getItem("ima2.workspaceProfile"); return v === "prompt-studio" ? "prompt-studio" : "default"; } catch { return "default"; }
+  })(),
+
+  // Prompt Builder panel
+  promptBuilderOpen: false,
+  storyboardActive: false,
+
+  // Prompt Library state (0.23)
+  promptLibraryOpen: false,
+  promptLibrary: { prompts: [], folders: [] },
+  promptLibraryLoading: false,
+  galleryFavorites: new Set(),
+  browserId: getBrowserId(),
+
+  // Canvas Mode state (0.24)
+  canvasOpen: false,
+  canvasZoom: 1,
+  canvasPanX: 0,
+  canvasPanY: 0,
+  canvasExportBackground: loadCanvasExportBackground().mode,
+  canvasExportMatteColor: loadCanvasExportBackground().matteColor,
+
+  syncCapabilities: () => syncCapabilitiesImpl(set),
+  addReferences: (files) => addReferencesImpl(files, set, get),
+  addReferenceDataUrl: (dataUrl) => addReferenceDataUrlImpl(dataUrl, set, get),
+  metadataRestore: null,
+  readDroppedImageMetadata: (file, targetNodeId = null) => readDroppedImageMetadataImpl(file, targetNodeId, set, get),
+  applyMetadataRestore: () => applyMetadataRestoreImpl(set, get),
+  cancelMetadataRestore: () => set({ metadataRestore: null }),
+  addMetadataRestoreAsReference: () => addMetadataRestoreAsReferenceImpl(set, get),
+  removeReference: (index) => removeReferenceImpl(index, set, get),
+  setProviderUrlReference: (url) => set({ providerUrlReference: url }),
+  clearReferences: () => clearReferencesImpl(set, get),
+  attachCanvasVersionReference: (item, overrideSource) => attachCanvasVersionReferenceImpl(item, set, get, overrideSource),
+  useCurrentAsReference: () => useCurrentAsReferenceImpl(set, get),
+  useImageAsReference: (item) => useImageAsReferenceImpl(item, set, get),
+  activeGenerations: 0,
+  unseenGeneratedCount: 0,
+  inFlight: [],
+  cancelInFlightJob: (requestId) => cancelInFlightJobImpl(requestId, set, get),
+  startInFlightPolling: () => {
+    startInFlightPollingImpl(set, get);
+  },
+  reconcileInflight: async () => {
+    await reconcileInflightImpl(set, get);
+  },
+  syncFromStorage: () => syncFromStorageImpl(set, get),
+  currentImage: null,
+  lastHistorySelectedAt: 0,
+  applyMergedCanvasImage: (item) => applyMergedCanvasImageImpl(item, set),
+  addGeneratedHistoryItem: async (item) => {
+    await addHistory(item, set, get);
+  },
+  history: [],
+  historyNextCursor: null,
+  historyLoadingOlder: false,
+  favoriteHistoryNextCursor: null,
+  favoriteHistoryLoadingOlder: false,
+  loadedHistoryRetainLimit: HISTORY_LIMIT,
+  loadOlderHistory: async () => loadOlderHistoryImpl(set, get),
+loadFavoriteHistory: async () => loadFavoriteHistoryImpl(set, get),
+loadOlderFavoriteHistory: async () => loadOlderFavoriteHistoryImpl(set, get),
+trashPending: null,
+  toast: null,
+  toastLog: [],
+  customSizeConfirm: null,
+  errorCard: null,
+  errorCardLog: [],
+  rightPanelOpen: loadRightPanelOpen(),
+  toggleRightPanel: () => toggleRightPanelImpl(set, get),
+  composeSheetOpen: false,
+  composeSheetTab: "prompt",
+  openComposeSheet: (tab = "prompt") => set({ composeSheetOpen: true, composeSheetTab: tab }),
+  setComposeSheetTab: (tab) => set({ composeSheetTab: tab }),
+  closeComposeSheet: () => set({ composeSheetOpen: false }),
+  galleryOpen: false,
+  openGallery: () =>
+    set((s) => ({ galleryOpen: true, galleryScope: s.galleryDefaultScope })),
+  closeGallery: () => set({ galleryOpen: false }),
+  galleryScope: loadGalleryScope(GALLERY_SCOPE_STORAGE_KEY),
+  galleryDefaultScope: loadGalleryScope(GALLERY_DEFAULT_SCOPE_STORAGE_KEY),
+  setGalleryScope: (scope) => setGalleryScopeImpl(scope, set),
+  setGalleryDefaultScope: (scope) => setGalleryDefaultScopeImpl(scope, set),
+
+  imageModel: storedImageModel,
+  reasoningEffort: loadReasoningEffort(),
+  webSearchEnabled: loadWebSearchEnabled(),
+
+  settingsOpen: false,
+  activeSettingsSection: "providers",
+  readinessPopupOpen: false,
+  openSettings: (section = "providers") =>
+    set({ settingsOpen: true, activeSettingsSection: section }),
+  closeSettings: () => set({ settingsOpen: false }),
+  toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen, activeSettingsSection: s.settingsOpen ? s.activeSettingsSection : "providers" })),
+  setActiveSettingsSection: (section) => set({ activeSettingsSection: section }),
+  openReadinessPopup: () => set({ readinessPopupOpen: true }),
+  closeReadinessPopup: () => set({ readinessPopupOpen: false }),
+
+  uiMode: loadUIMode(),
+  setUIMode: (m) => setUIModeImpl(m, set),
+
+  historyStripLayout: loadHistoryStripLayout(),
+  setHistoryStripLayout: (layout) => setHistoryStripLayoutImpl(layout, set),
+
+  locale: loadLocale(),
+  setLocale: (l) => {
+    saveLocale(l);
+    set({ locale: l });
+  },
+
+  graphNodes: [],
+  graphEdges: [],
+  setGraphNodes: (graphNodes) => setGraphNodesImpl(graphNodes, set, get),
+  setGraphEdges: (graphEdges) => setGraphEdgesImpl(graphEdges, set, get),
+  disconnectEdge: (edgeId) => {
+    get().disconnectEdges([edgeId]);
+  },
+  disconnectEdges: (edgeIds) => disconnectEdgesImpl(edgeIds, set, get),
+  nodeSelectionMode: false,
+  nodeBatchRunning: false,
+  nodeBatchStopping: false,
+  toggleNodeSelectionMode: () => toggleNodeSelectionModeImpl(set, get),
+  selectAllGraphNodes: () => {
+    set({ graphNodes: applySelectedNodeIds(get().graphNodes, get().graphNodes.map((n) => n.id)) });
+  },
+  selectNodeGraph: (clientId, additive) => selectNodeGraphImpl(clientId, additive, set, get),
+  clearNodeSelection: () => {
+    set({ graphNodes: applySelectedNodeIds(get().graphNodes, []) });
+  },
+  cancelNodeBatch: () => cancelNodeBatchImpl(set, get),
+
+  sessions: [],
+  activeSessionId: null,
+  activeSessionGraphVersion: null,
+  sessionLoading: false,
+
+  async loadSessions() { await loadSessionsImpl(set, get); },
+async switchSession(id) { await switchSessionImpl(id, set, get); },
+async reconcileGraphPending() { await reconcileGraphPendingImpl(set, get); },
+async createAndSwitchSession(title?: string) { await createAndSwitchSessionImpl(title, set, get); },
+async renameCurrentSession(title) { await renameCurrentSessionImpl(title, set, get); },
+async deleteSessionById(id) { await deleteSessionByIdImpl(id, set, get); },
+scheduleGraphSave() {
+    scheduleGraphSaveImpl(get, set);
+  },
+
+  async flushGraphSave(reason = "manual") {
+    await flushGraphSaveImpl(get, set, reason);
+  },
+
+  addRootNode: () => addRootNodeImpl(set, get),
+createRootNodeFromHistoryItem: (item) => createRootNodeFromHistoryItemImpl(item, set, get),
+addChildNode: (parentClientId) => addChildNodeImpl(parentClientId, set, get),
+
+  addSiblingNode: (sourceClientId) => addSiblingNodeImpl(sourceClientId, set, get),
+
+  updateNodePrompt: (clientId, prompt) => updateNodePromptImpl(clientId, prompt, set, get),
+addNodeReferences: async (clientId, files) => addNodeReferencesImpl(clientId, files, set, get),
+addNodeReferenceDataUrl: (clientId, dataUrl) => addNodeReferenceDataUrlImpl(clientId, dataUrl, set, get),
+addNodeReferenceFromUrl: async (clientId, src, filename) => addNodeReferenceFromUrlImpl(clientId, src, filename, set, get),
+removeNodeReference: (clientId, index) => removeNodeReferenceImpl(clientId, index, set, get),
+clearNodeReferences: (clientId) => clearNodeReferencesImpl(clientId, set, get),
+duplicateBranchRoot: (sourceClientId) => duplicateBranchRootImpl(sourceClientId, set, get),
+
+  generateNode: (clientId) => generateNodeImpl(clientId, set, get),
+
+  generateNodeInPlace: (clientId) => generateNodeInPlaceImpl(clientId, set, get),
+
+  generateNodeVariation: (clientId, sizeOverride) => generateNodeVariationImpl(clientId, sizeOverride, set, get),
+
+  runGenerateNode: (clientId, sizeOverride) => runGenerateNodeImpl(clientId, sizeOverride, set, get),
+
+  async runGenerateNodeInPlace(clientId, options = {}) {
+    return runGenerateNodeInPlaceImpl(clientId, options, set, get, saveInFlight);
+  },
+
+  async runNodeBatch(mode) {
+    await runNodeBatchImpl(mode, set, get);
+  },
+
+  deleteNode: (clientId) => deleteNodeImpl(clientId, set, get),
+deleteNodes: (clientIds) => deleteNodesImpl(clientIds, set, get),
+addChildNodeAt: (parentClientId, position, sourceHandle) => addChildNodeAtImpl(parentClientId, position, sourceHandle, set, get),
+
+  connectNodes: (sourceClientId, targetClientId, sourceHandle, targetHandle) => connectNodesImpl(sourceClientId, targetClientId, sourceHandle, targetHandle, set, get),
+  setProvider: (provider) => setProviderImpl(provider, set, get),
+  setQuality: (quality) => setQualityImpl(quality, set),
+  setSizePreset: (sizePreset) => setSizePresetImpl(sizePreset, set),
+  setCustomSize: (w, h) => setCustomSizeImpl(w, h, set, get),
+  setGrokAspectRatio: (grokAspectRatio) => setGrokAspectRatioImpl(grokAspectRatio, set),
+  setGrokResolution: (grokResolution) => setGrokResolutionImpl(grokResolution, set),
+  setFormat: (format) => setFormatImpl(format, set),
+  setModeration: (moderation) => setModerationImpl(moderation, set),
+  setImageModel: (imageModel) => setImageModelImpl(imageModel, set, get),
+  videoModelSelected: storedVideoDefaults.model,
+  videoDuration: storedVideoDefaults.duration,
+  videoResolution: storedVideoDefaults.resolution as VideoResolutionUI,
+  videoAspectRatio: storedVideoDefaults.aspectRatio,
+  videoTopic: "",
+  videoContinuityLineage: null,
+  videoProgress: null,
+  selectVideoModel: (model) => selectVideoModelImpl(model, set, get),
+  setVideoDuration: (videoDuration) => { set({ videoDuration }); saveVideoDefaults({ duration: videoDuration }); },
+  setVideoResolution: (videoResolution) => { set({ videoResolution }); saveVideoDefaults({ resolution: videoResolution }); },
+  setVideoAspectRatio: (videoAspectRatio) => { set({ videoAspectRatio }); saveVideoDefaults({ aspectRatio: videoAspectRatio }); },
+  setVideoTopic: (videoTopic) => set({ videoTopic }),
+  setVideoContinuityLineage: (videoContinuityLineage) => set({ videoContinuityLineage }),
+  activeVideoRefCount: () => activeVideoRefCountImpl(get),
+  runVideoGenerate: async (nodeId) => {
+    await runVideoGenerateImpl(nodeId, set, get);
+  },
+  animateImage: async (filename, prompt) => {
+    await animateImageImpl(filename, prompt, set, get);
+  },
+  setReasoningEffort: (reasoningEffort) => setReasoningEffortImpl(reasoningEffort, set),
+  setWebSearchEnabled: (webSearchEnabled) => setWebSearchEnabledImpl(webSearchEnabled, set),
+  setCount: (count) => setCountImpl(count, set),
+  setMultimode: (enabled) => setMultimodeImpl(enabled, set, get),
+  setMultimodeMaxImages: (count) => setMultimodeMaxImagesImpl(count, set),
+  setPromptMode: (promptMode) => setPromptModeImpl(promptMode, set),
+  setPrompt: (prompt) => setPromptImpl(prompt, set),
+  insertPromptToComposer: (prompt) => insertPromptToComposerImpl(prompt, set),
+  removeInsertedPromptFromComposer: (id) => removeInsertedPromptFromComposerImpl(id, set),
+  moveInsertedPromptInComposer: (id, direction) => moveInsertedPromptInComposerImpl(id, direction, set),
+  clearInsertedPrompts: () => clearInsertedPromptsImpl(set),
+
+  selectHistory: (item) => selectHistoryImpl(item, set, get),
+showHistorySequence: (sequenceId) => showHistorySequenceImpl(sequenceId, set, get),
+markGeneratedResultsSeen: () => set({ unseenGeneratedCount: 0 }),
+
+  selectHistoryShortcutTarget: (action) => selectHistoryShortcutTargetImpl(action, set, get),
+trashHistoryItem: async (item) => trashHistoryItemImpl(item, set, get),
+trashHistorySequence: async (sequenceId) => trashHistorySequenceImpl(sequenceId, set, get),
+restorePendingTrash: async () => restorePendingTrashImpl(set, get),
+clearPendingTrash: () => set({ trashPending: null }),
+
+  permanentlyDeleteHistoryItemByClick: async (item) => {
+    await get().permanentlyDeleteHistoryItemByShortcut(item);
+  },
+
+  permanentlyDeleteHistoryItemByShortcut: async (item) => permanentlyDeleteHistoryItemImpl(item, set, get),
+removeFromHistory: (filename) => removeFromHistoryImpl(filename, set, get),
+addHistoryItem: (item) => addHistoryItemImpl(item, set, get),
+importLocalImageToHistory: async (file) => importLocalImageToHistoryImpl(file, set, get),
+
+  getResolvedSize: () => getResolvedSizeImpl(get),
+
+  generate: () => generateImpl(set, get),
+
+  async generateMultimode(sizeOverride) {
+    await generateMultimodeImpl(sizeOverride, set, get);
+  },
+
+  cancelMultimode: () => cancelMultimodeImpl(set, get),
+
+  async runGenerate(sizeOverride) {
+    await runGenerateImpl(sizeOverride, set, get);
+  },
+
+  confirmCustomSizeAdjustment: () => confirmCustomSizeAdjustmentImpl(set, get),
+
+  cancelCustomSizeAdjustment: () => set({ customSizeConfirm: null }),
+
+  hydrateHistory() {
+    hydrateHistoryImpl(set, get);
+  },
+
+  showToast: (message, error = false) => showToastImpl(message, error, set),
+  dismissToast: (id) => dismissToastImpl(id, set),
+  showErrorCard: (code, params) => showErrorCardImpl(code, params, set),
+  dismissErrorCard: (id) => dismissErrorCardImpl(id, set),
+
+  // ── Workspace Profile actions ──
+  setWorkspaceProfile(profile) {
+    set({ workspaceProfile: profile });
+    try { localStorage.setItem("ima2.workspaceProfile", profile); } catch { /* non-critical */ }
+  },
+  togglePromptBuilder() {
+    set((s) => ({ promptBuilderOpen: !s.promptBuilderOpen }));
+  },
+  toggleStoryboard() {
+    set((s) => ({ storyboardActive: !s.storyboardActive }));
+  },
+
+  // ── Prompt Library actions (0.23) ──
+  setPromptLibraryOpen(open) {
+    set({ promptLibraryOpen: open });
+  },
+  togglePromptLibrary() {
+    set((s) => ({ promptLibraryOpen: !s.promptLibraryOpen }));
+  },
+
+  loadPromptLibrary: () => loadPromptLibraryImpl(set),
+
+  savePromptToLibrary: (payload) => savePromptToLibraryImpl(payload, set, get),
+
+  deletePromptFromLibrary: (id) => deletePromptFromLibraryImpl(id, set, get),
+
+  togglePromptFavorite: (id) => togglePromptFavoriteImpl(id, set, get),
+
+  importPromptsToLibrary: (files) => importPromptsToLibraryImpl(files, set, get),
+
+  toggleGalleryFavorite: (filename) => toggleGalleryFavoriteImpl(filename, set, get),
+
+  // Canvas Mode actions (0.24)
+  openCanvas: () => set({ canvasOpen: true, canvasZoom: 1, canvasPanX: 0, canvasPanY: 0 }),
+  closeCanvas: () => set({ canvasOpen: false }),
+  setCanvasZoom: (zoom) => set({ canvasZoom: Math.max(0.5, Math.min(3, zoom)) }),
+  resetCanvasZoom: () => set({ canvasZoom: 1, canvasPanX: 0, canvasPanY: 0 }),
+  setCanvasPan: (x, y) => setCanvasPanImpl(x, y, set),
+  resetCanvasPan: () => set({ canvasPanX: 0, canvasPanY: 0 }),
+  setCanvasExportBackground: (mode) => setCanvasExportBackgroundImpl(mode, set, get),
+  setCanvasExportMatteColor: (color) => setCanvasExportMatteColorImpl(color, set, get),
+}));

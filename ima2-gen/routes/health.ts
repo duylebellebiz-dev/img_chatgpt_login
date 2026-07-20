@@ -1,0 +1,124 @@
+import type { Express, Request, Response } from "express";
+import { abortJob, listJobs, listTerminalJobs } from "../lib/inflight.js";
+
+import { errInfo } from "../lib/errInfo.js";
+import { requireRuntimeContext, type RouteRuntimeContext } from "../lib/runtimeContext.js";
+export function registerHealthRoutes(app: Express, ctxRaw: RouteRuntimeContext) {
+  const ctx = requireRuntimeContext(ctxRaw);
+  const runtimePorts = () => ({
+    backend: {
+      configuredPort: Number(ctx.serverConfiguredPort || ctx.config.server.port),
+      actualPort: Number(ctx.serverActualPort || ctx.config.server.port),
+      url: ctx.serverUrl || `http://localhost:${ctx.serverActualPort || ctx.config.server.port}`,
+    },
+    oauth: {
+      configuredPort: Number(ctx.oauthPort),
+      actualPort: Number(ctx.oauthActualPort || ctx.oauthPort),
+      url: ctx.oauthUrl,
+      status: ctx.oauthReadyState,
+    },
+    grok: {
+      configuredPort: Number(ctx.grokPort),
+      actualPort: Number(ctx.grokActualPort || ctx.grokPort),
+      url: ctx.grokUrl,
+    },
+  });
+
+  app.get("/api/providers", (_req: Request, res: Response) => {
+    res.json({
+      apiKey: Boolean(ctx.hasApiKey),
+      oauth: true,
+      oauthPort: ctx.oauthPort,
+      oauthActualPort: ctx.oauthActualPort || ctx.oauthPort,
+      oauthUrl: ctx.oauthUrl,
+      apiKeyDisabled: false,
+      apiKeySource: ctx.apiKeySource ?? "none",
+      runtime: runtimePorts(),
+    });
+  });
+
+  app.get("/api/health", (_req: Request, res: Response) => {
+    res.json({
+      ok: true,
+      version: ctx.packageVersion,
+      provider: "oauth",
+      uptimeSec: Math.round(process.uptime()),
+      activeJobs: listJobs().length,
+      pid: process.pid,
+      startedAt: ctx.startedAt,
+      runtime: runtimePorts(),
+    });
+  });
+
+  app.get("/api/oauth/status", async (_req: Request, res: Response) => {
+    if (ctx.oauthReadyState === "starting") {
+      return res.json({ status: "starting", runtime: runtimePorts() });
+    }
+    if (ctx.oauthReadyState === "failed") {
+      return res.json({ status: "offline", runtime: runtimePorts() });
+    }
+    try {
+      const r = await fetch(`${ctx.oauthUrl}/v1/models`, {
+        signal: AbortSignal.timeout(ctx.config.oauth.statusTimeoutMs),
+      });
+      if (r.ok) {
+        const data = (await r.json()) as { data?: Array<{ id: string }> };
+        res.json({ status: "ready", models: data.data?.map((m) => m.id) || [], runtime: runtimePorts() });
+      } else {
+        res.json({ status: "auth_required", runtime: runtimePorts() });
+      }
+    } catch {
+      res.json({ status: "offline", runtime: runtimePorts() });
+    }
+  });
+
+  app.get("/api/inflight", (req: Request, res: Response) => {
+    const kind =
+      typeof req.query.kind === "string" && req.query.kind.length > 0
+        ? req.query.kind
+        : undefined;
+    const sessionId =
+      typeof req.query.sessionId === "string" && req.query.sessionId.length > 0
+        ? req.query.sessionId
+        : undefined;
+    const includeTerminal =
+      req.query.includeTerminal === "1" || req.query.includeTerminal === "true";
+    const jobs = listJobs({ kind, sessionId });
+    if (!includeTerminal) return res.json({ jobs });
+    return res.json({
+      jobs,
+      terminalJobs: listTerminalJobs({ kind, sessionId }),
+    });
+  });
+
+  app.delete("/api/inflight/:requestId", (req: Request<{ requestId: string }>, res: Response) => {
+    res.json(abortJob(req.params.requestId));
+  });
+
+  app.get("/api/billing", async (_req: Request, res: Response) => {
+    if (!ctx.hasApiKey) {
+      return res.json({ oauth: true, apiKeyValid: false, apiKeySource: "none" });
+    }
+
+    try {
+      const headers = { Authorization: `Bearer ${ctx.apiKey}`, "Content-Type": "application/json" };
+      const start = Math.floor(new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime() / 1000);
+      const end = Math.floor(Date.now() / 1000);
+      const billingSignal = AbortSignal.timeout(10_000);
+      const [subRes, usageRes, modelsRes] = await Promise.allSettled([
+        fetch(`https://api.openai.com/v1/organization/costs?start_time=${start}&end_time=${end}&bucket_width=1d&limit=31`, { headers, signal: billingSignal }),
+        fetch("https://api.openai.com/dashboard/billing/credit_grants", { headers, signal: billingSignal }),
+        fetch("https://api.openai.com/v1/models", { headers, signal: billingSignal }),
+      ]);
+
+      const billing: Record<string, unknown> = { apiKeySource: ctx.apiKeySource ?? "env" };
+      if (subRes.status === "fulfilled" && subRes.value.ok) billing.costs = await subRes.value.json();
+      if (usageRes.status === "fulfilled" && usageRes.value.ok) billing.credits = await usageRes.value.json();
+      billing.apiKeyValid = modelsRes.status === "fulfilled" && modelsRes.value.ok === true;
+      res.json(billing);
+    } catch (e) {
+      const err = errInfo(e);
+      res.status(500).json({ error: err.message, apiKeyValid: false });
+    }
+  });
+}

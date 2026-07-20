@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/Satoshi-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+  font-style: normal;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0b0b0f;
+  --surface: #14141a;
+  --surface-2: #1c1c23;
+  --surface-3: #26262f;
+  --border: #26262f;
+  --border-strong: #3d3d49;
+  --text: #f4f4f6;
+  --text-dim: #b6b6c2;
+  --text-muted: #90909d;
+  --text-faint: #55555f;
+  --canvas-muted: #33333c;
+  --accent: #f0f0f4;
+  --accent-bright: #fff;
+  --accent-soft: rgba(207, 210, 221, 0.1);
+  --accent-ink: #0b0b0f;
+  --accent-shadow: rgba(255, 255, 255, 0.1);
+  --focus-ring: rgba(122, 215, 255, 0.35);
+  --hairline: rgba(255, 255, 255, 0.16);
+  --hairline-soft: rgba(255, 255, 255, 0.04);
+  --control-bg: rgba(255, 255, 255, 0.03);
+  --control-hover: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --scrim-strong: rgba(0, 0, 0, 0.78);
+  --caption-scrim: rgba(0, 0, 0, 0.85);
+  --chip-scrim: rgba(0, 0, 0, 0.75);
+  --on-scrim: #f6f7fb;
+  --shadow-soft: rgba(0, 0, 0, 0.4);
+  --shadow-strong: rgba(0, 0, 0, 0.5);
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --blue: #4a9eff;
+  --radius: 10px;
+  --font: "Satoshi", "Pretendard Variable", system-ui, sans-serif;
+  --font-display: "Clash Display", "Pretendard Variable", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  --prism: linear-gradient(100deg, #ff5adf 0%, #7ad7ff 28%, #ffd166 55%, #b28dff 78%, #7ad7ff 100%);
+  --chrome: linear-gradient(180deg, #ffffff 0%, #c8ccd8 35%, #6f7484 60%, #e8eaf1 100%);
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-line: rgba(255, 255, 255, 0.1);
+  color-scheme: dark;
+}
+
+/* Site-texture layers: corner glow + film-grain noise (behind all content).
+   Opaque surfaces (panels, viewers, canvas) naturally cover them, so media
+   review areas stay clean. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(122, 215, 255, 0.055), transparent 34%),
+    radial-gradient(circle at 4% 84%, rgba(255, 90, 223, 0.035), transparent 30%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.026;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Phase 020: unified keyboard focus ring (site :focus-visible grammar). */
+:focus-visible {
+  outline: 2px solid rgba(122, 215, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@import "./styles/themes.css";
+@import "./styles/controls.css";
+@import "./styles/nav-rail.css";
+@import "./styles/sidebar.css";
+@import "./styles/form-controls.css";
+@import "./styles/canvas-viewer.css";
+@import "./styles/canvas-accordion.css";
+@import "./styles/right-panel.css";
+@import "./styles/progress-composer.css";
+@import "./styles/gallery-modal.css";
+@import "./styles/provider-controls.css";
+@import "./styles/toast-modal.css";
+@import "./styles/responsive-layout.css";
+@import "./styles/responsive-mobile.css";
+@import "./styles/node-workspace.css";
+@import "./styles/node-polish.css";
+@import "./styles/card-news-layout.css";
+@import "./styles/card-news-templates.css";
+@import "./styles/prompt-library-core.css";
+@import "./styles/prompt-library-detail.css";
+@import "./styles/prompt-library-extras.css";

@@ -1,0 +1,38 @@
+---
+import { t, type Lang } from '../i18n/strings';
+import LangToggle from './LangToggle.astro';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const repoUrl = 'https://github.com/lidge-jun/ima2-gen';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const homeHref = lang === 'ko' ? `${base}/ko` : `${base}/`;
+const faqHref = lang === 'ko' ? `${base}/ko/faq` : `${base}/faq`;
+const docsHref = lang === 'ko' ? `${base}/ko/docs` : `${base}/docs`;
+---
+
+<header class="topbar glass-panel">
+  <div class="frame row">
+    <a href={homeHref} class="brand chrome-text" aria-label={t(lang, 'header.brand.aria')}>ima2</a>
+    <nav aria-label={t(lang, 'header.nav.aria')}>
+      <a href={`${homeHref}#workflows`}>{t(lang, 'header.nav.workflows')}</a>
+      <a href={`${homeHref}#branch`}>{t(lang, 'header.nav.branch')}</a>
+      <a href={`${homeHref}#local`}>{t(lang, 'header.nav.local')}</a>
+      <a href={`${homeHref}#install`}>{t(lang, 'header.nav.install')}</a>
+      <a href={faqHref}>{t(lang, 'header.nav.faq')}</a>
+      <a href={docsHref}>{t(lang, 'header.nav.docs')}</a>
+    </nav>
+    <div class="right"><LangToggle current={lang} /><a class="gh foil-hover" href={repoUrl} target="_blank" rel="noopener">{t(lang, 'header.gh')}</a></div>
+  </div>
+</header>
+
+<style>
+  .topbar { position: sticky; top: 10px; z-index: 50; width: calc(100% - 24px); max-width: 1500px; margin: 10px auto -72px; background: rgba(11,11,15,.68); }
+  .row { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 24px; }
+  .brand { font-family: var(--font-display); font-size: 24px; font-weight: 700; line-height: 1; }
+  nav { display: flex; align-items: center; gap: 28px; font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--text-dim); }
+  nav a, .gh { transition: color .2s ease; }
+  nav a:hover { color: var(--text); }
+  .right { display: flex; align-items: center; gap: 14px; }
+  .gh { padding: 7px 12px; border: 1px solid var(--glass-line); border-radius: 4px; font-family: var(--font-mono); font-size: 11px; }
+  @media (max-width: 820px) { nav { display: none; } .topbar { top: 6px; width: calc(100% - 12px); margin-top: 6px; } .row { min-height: 54px; } }
+</style>

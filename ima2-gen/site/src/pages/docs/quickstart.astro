@@ -1,0 +1,87 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { docsPath } from '../../i18n/docs';
+
+const d = (slug: string) => docsPath(import.meta.env.BASE_URL, 'en', slug);
+---
+
+<DocsLayout
+  lang="en"
+  active="quickstart"
+  title="Quickstart"
+  description="Install ima2-gen, choose auth (ChatGPT/Grok/Both/API), run the local server, and start generating images and videos."
+>
+  <p class="docs-eyebrow">Getting Started</p>
+  <h1>Quickstart</h1>
+  <p class="lead">
+    Install globally, choose your auth method, and start generating images and videos.
+    No API key required for the default OAuth paths.
+  </p>
+
+  <h2>Install and run</h2>
+  <pre><code>npm install -g ima2-gen
+ima2 setup
+ima2 serve</code></pre>
+  <p>Then open <code>http://localhost:3333</code>.</p>
+
+  <h2>One-Click Install (no npm required)</h2>
+  <p>
+    Don't have Node.js or npm? Use the platform install script — it detects your environment,
+    installs Node LTS if needed, then installs ima2-gen.
+  </p>
+
+  <h3>macOS</h3>
+  <pre><code>curl -fsSL https://lidge-jun.github.io/ima2-gen/install-mac.sh | bash</code></pre>
+
+  <h3>Windows (PowerShell)</h3>
+  <pre><code>irm https://lidge-jun.github.io/ima2-gen/install-windows.ps1 | iex</code></pre>
+
+  <h3>Linux / WSL</h3>
+  <pre><code>curl -fsSL https://lidge-jun.github.io/ima2-gen/install-linux.sh | bash</code></pre>
+
+  <p>
+    Each script checks for nvm/fnm/brew/winget, installs Node LTS through
+    the best available method, and handles stale process cleanup automatically.
+  </p>
+
+  <div class="docs-callout docs-callout-info">
+    <strong>Port discovery.</strong> If <code>3333</code> is busy, ima2-gen binds the next free port
+    and writes the real URL to <code>~/.ima2/server.json</code>. Use <code>ima2 open</code> or the
+    URL printed in the terminal instead of assuming the port.
+  </div>
+
+  <h2>Setup (choose auth)</h2>
+  <p><code>ima2 setup</code> offers four authentication methods:</p>
+  <ol>
+    <li><strong>GPT OAuth</strong> — sign in with ChatGPT (free, images only)</li>
+    <li><strong>Grok OAuth</strong> — sign in with xAI/Grok (images + video)</li>
+    <li><strong>Both</strong> — GPT + Grok (full feature access)</li>
+    <li><strong>API Key</strong> — paste your OpenAI API key (paid)</li>
+  </ol>
+  <p>Video generation requires Grok OAuth (option 2 or 3). Add it later with <code>ima2 grok login</code>, which defaults to the manual-paste flow.</p>
+  <p>If your GPT OAuth token expires, re-run <code>ima2 setup</code> (option 1) to refresh it.</p>
+  <div class="docs-callout docs-callout-warn">
+    <strong>Updating.</strong> Stop the server with Ctrl+C — ima2-gen performs a clean shutdown
+    (closes DB, sockets, and child processes). Then run <code>npm install -g ima2-gen@latest</code>.
+    If you see <code>EBUSY</code> on Windows, use the <a href="/ima2-gen/install-windows.ps1">install script</a> which handles stale process cleanup automatically.
+  </div>
+
+  <h2>Develop from source</h2>
+  <pre><code>git clone https://github.com/lidge-jun/ima2-gen.git
+cd ima2-gen
+npm install
+npm run dev          # build the UI, run the TS server with --watch + diagnostics
+npm run typecheck
+npm test
+npm run build</code></pre>
+  <p>
+    <code>npm run dev</code> builds the UI and starts the TypeScript server entry with
+    <code>--watch</code>. Treat the <code>.ts</code> files as the source of truth; the paired
+    <code>.js</code> artifacts are produced by the build, never edited by hand.
+  </p>
+
+  <div class="docs-pagenav">
+    <a class="prev" href={d('')}>Overview</a>
+    <a class="next" href={d('concepts/architecture')}>Architecture</a>
+  </div>
+</DocsLayout>

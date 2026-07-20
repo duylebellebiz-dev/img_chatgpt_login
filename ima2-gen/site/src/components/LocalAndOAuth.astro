@@ -1,0 +1,47 @@
+---
+import Screenshot from './Screenshot.astro';
+import { t, type Lang } from '../i18n/strings';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+---
+
+<section class="local-oauth" id="local">
+  <div class="band band-local">
+    <span class="back-word outline-text" aria-hidden="true">LOCAL</span>
+    <div class="frame band-grid">
+      <div class="band-copy reveal" style="--i:0">
+        <div class="section-tag">{t(lang, 'local.tag')}</div>
+        <h2 class="h-section section-h">{t(lang, 'local.h.before')}<span class="prism-text">{t(lang, 'local.h.em')}</span></h2>
+        <p class="section-lede">{t(lang, 'local.lede')}</p>
+      </div>
+      <div class="local-shot reveal" style="--i:1"><Screenshot src="screenshots/settings-oauth-generation.png" alt={t(lang, 'local.shot.alt')} aspect="4/3" eager /></div>
+    </div>
+  </div>
+  <div class="band band-oauth">
+    <span class="back-word outline-text" aria-hidden="true">OAUTH</span>
+    <div class="frame oauth-grid">
+      <blockquote class="pull-quote reveal" style="--i:0">{t(lang, 'local.quote.before')}<strong>{t(lang, 'local.quote.strong')}</strong>{t(lang, 'local.quote.after')}</blockquote>
+      <p class="local-meta reveal" style="--i:1">{t(lang, 'local.meta')}</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .local-oauth { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: clip; }
+  .band { position: relative; min-height: 560px; display: grid; align-items: center; overflow: hidden; isolation: isolate; }
+  .band-oauth { min-height: 380px; background: var(--bg-soft); border-top: 1px solid var(--line); }
+  .back-word { position: absolute; z-index: -1; left: 50%; top: 50%; transform: translate(-50%,-50%); font: 700 180px/.8 var(--font-display); white-space: nowrap; opacity: .54; }
+  .band-oauth .back-word { left: 8%; transform: translateY(-50%); }
+  .band-grid { display: grid; grid-template-columns: minmax(280px,.8fr) minmax(0,1.2fr); gap: 72px; align-items: center; padding-top: 96px; padding-bottom: 96px; }
+  .band-copy { max-width: 560px; }
+  .section-h { margin-top: 18px; }
+  .section-lede { margin-top: 22px; }
+  .local-shot { transform: rotate(2deg); }
+  .local-shot :global(.screenshot) { box-shadow: 0 30px 90px rgba(0,0,0,.5); }
+  .oauth-grid { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(240px,.7fr); gap: 72px; align-items: end; padding-top: 88px; padding-bottom: 88px; }
+  .pull-quote { max-width: 800px; margin: 0; font: 500 26px/1.4 var(--font-display); letter-spacing: 0; text-wrap: pretty; }
+  .pull-quote strong { color: var(--text); background: var(--prism); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .local-meta { margin: 0; color: var(--text-dim); font: 500 12px/1.7 var(--font-mono); letter-spacing: .04em; }
+  @media (max-width: 900px) { .back-word { font-size: 132px; } .band-grid, .oauth-grid { grid-template-columns: 1fr; gap: 44px; } .band-grid { padding-top: 76px; padding-bottom: 76px; } .oauth-grid { padding-top: 72px; padding-bottom: 72px; } .band-oauth .back-word { left: 50%; transform: translate(-50%,-50%); } }
+  @media (max-width: 480px) { .band { min-height: 0; } .back-word { top: 18%; font-size: 82px; } .band-oauth .back-word { top: 50%; font-size: 78px; } .pull-quote { font-size: 21px; } }
+</style>

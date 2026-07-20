@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import TwoWorkflows from '../components/TwoWorkflows.astro';
+import LatestCapabilities from '../components/LatestCapabilities.astro';
+import WhyBranch from '../components/WhyBranch.astro';
+import LocalAndOAuth from '../components/LocalAndOAuth.astro';
+import InstallFooter from '../components/InstallFooter.astro';
+import FAQ from '../components/FAQ.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import Marquee from '../components/Marquee.astro';
+
+const lang = 'en' as const;
+const marqueeItems = ['100% LOCAL GALLERY', 'NO API KEY NEEDED', 'IMAGE + VIDEO', 'NODE BRANCHING', 'CANVAS MODE', 'AGENT SKILLS', 'OPEN SOURCE · MIT', 'CHATGPT OAUTH', 'GROK VIDEO'];
+---
+
+<Base lang={lang}>
+  <Header lang={lang} />
+  <main>
+    <Hero lang={lang} />
+    <TwoWorkflows lang={lang} />
+    <LatestCapabilities lang={lang} />
+    <WhyBranch lang={lang} />
+    <LocalAndOAuth lang={lang} />
+    <Marquee items={marqueeItems} angle={2} />
+    <InstallFooter lang={lang} />
+    <FAQ lang={lang} />
+  </main>
+  <SiteFooter lang={lang} />
+</Base>

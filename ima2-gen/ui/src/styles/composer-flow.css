@@ -1,0 +1,48 @@
+.composer__prompt-chip {
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+
+.composer__prompt-chip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.composer__prompt-chip-move,
+.composer__prompt-chip-remove {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+}
+
+.composer__prompt-chip-move:hover:not(:disabled),
+.composer__prompt-chip-move:focus-visible:not(:disabled),
+.composer__prompt-chip-remove:hover,
+.composer__prompt-chip-remove:focus-visible {
+  background: var(--control-hover);
+  color: var(--text);
+}
+
+.composer__prompt-chip-move:disabled {
+  cursor: not-allowed;
+  opacity: 0.36;
+}
+
+.composer__prompt-chips--after {
+  padding-top: 2px;
+  border-top: 1px dashed var(--border);
+}
+
+.composer__prompt-chips-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}

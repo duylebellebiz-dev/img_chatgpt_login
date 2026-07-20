@@ -1,0 +1,25 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+function readSource(path) {
+  return readFileSync(path, "utf-8");
+}
+
+describe("CLI doctor/status hardening contract", () => {
+  it("surfaces generated dir, advertised server, skill integrity, and native binding health", () => {
+    const ima2 = readSource("bin/ima2.ts");
+    const doctorCommand = readSource("bin/commands/doctor.ts");
+    const doctorChecks = readSource("bin/lib/doctor-checks.ts");
+
+    assert.match(ima2, /Generated dir:/);
+    assert.match(ima2, /Advertised server:/);
+    assert.match(doctorCommand, /buildHardeningDoctorLines/);
+    assert.match(doctorChecks, /Preferred backend port/);
+    assert.match(doctorChecks, /Card News:/);
+    assert.match(doctorChecks, /packaged skill/);
+    assert.match(doctorChecks, /"ima2", "ima2-front", "ima2-uiux"/);
+    assert.match(doctorChecks, /better-sqlite3 native binding/);
+    assert.match(doctorChecks, /chmod 600/);
+  });
+});

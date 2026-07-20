@@ -1,0 +1,485 @@
+import { mkdir, writeFile } from "fs/promises";
+import { safeWriteSidecar } from "./atomicWrite.js";
+import { join } from "path";
+import { randomBytes } from "crypto";
+import type { Request, Response } from "express";
+import { detectImageMimeFromB64, summarizeReferencePayload, validateAndNormalizeRefs } from "./refs.js";
+import { generateImageThumbnailFromBuffer } from "./imageThumb.js";
+import { classifyUpstreamError } from "./errorClassify.js";
+import { normalizeOAuthParams } from "./oauthNormalize.js";
+import { resolveProviderOptions } from "./providerOptions.js";
+import { generateMultimodeViaResponses } from "./responsesImageAdapter.js";
+import { generateMultimodeViaGrok } from "./grokMultimodeAdapter.js";
+import { generateViaAgy } from "./agyImageAdapter.js";
+import { generateViaGeminiApi } from "./geminiApiImageAdapter.js";
+import { startJob, finishJob, registerJobAbortController, isJobCanceled, isStartJobFailure, INFLIGHT_RETRY_AFTER_SECONDS } from "./inflight.js";
+import { isGenerationCanceledError, makeGenerationCanceledError, throwIfJobCanceled, } from "./generationCancel.js";
+import { logEvent, logError } from "./logger.js";
+import { embedImageMetadataBestEffort } from "./imageMetadataStore.js";
+import { invalidateHistoryIndex } from "./historyIndex.js";
+import { normalizeComposerInsertedPrompts, normalizeComposerPrompt, } from "./composerSnapshot.js";
+import { errInfo } from "./errInfo.js";
+import { requireRuntimeContext, type RuntimeContext } from "./runtimeContext.js";
+import { validateModeration, imageFormatFromMime, writeSse } from "./routeHelpers.js";
+import { publish } from "./eventBus.js";
+import { publishJobEvent } from "./ssePublish.js";
+import { normalizeMaxImages, sequenceStatus, type MultimodeImage, type MultimodeRouteItem, } from "./multimodeHelpers.js";
+import { normalizeBodyRequestId, validateBoundedCount, validateGenerationPrompt } from "./generationInputValidation.js";
+function dualEmitMultimode(res: Response, requestId: string, event: string, data: unknown) {
+  if (!res.writableEnded) writeSse(res, event, data);
+  if (event === "done") {
+    publishJobEvent(requestId, event, data as Record<string, unknown>);
+  } else {
+    publish(requestId, event, data as Record<string, unknown>);
+  }
+}
+
+function respondMultimodeValidationError(
+  res: Response,
+  requestId: string,
+  asyncMode: boolean,
+  status: number,
+  payload: Record<string, unknown>,
+) {
+  publish(requestId, "error", payload);
+  if (asyncMode && !res.headersSent) {
+    return res.status(status).json(payload);
+  }
+  if (!res.writableEnded) {
+    writeSse(res, "error", payload);
+    res.end();
+  }
+}
+export async function runMultimodePipeline(req: Request, res: Response, ctx: RuntimeContext) {
+    const requestId = normalizeBodyRequestId(req.body?.requestId, req.id);
+    const asyncMode = req.body?.async === true;
+    const promptError = validateGenerationPrompt(req.body?.prompt);
+    if (promptError) return res.status(400).json(promptError);
+    const maxAllowedImages = Math.max(1, Math.trunc(Number(ctx.config.limits.maxGeneratedImages) || 1));
+    const maxImagesResult = validateBoundedCount(req.body?.maxImages, 1, maxAllowedImages, "maxImages");
+    if ("error" in maxImagesResult) return res.status(400).json(maxImagesResult);
+    let finishStatus = "completed";
+    let finishHttpStatus = 200;
+    let finishErrorCode;
+    let finishMeta = {};
+    let finishCanceled = false;
+    let jobOwned = false;
+    const cancelController = new AbortController();
+    const images: MultimodeRouteItem[] = [];
+    const persistedIndexes = new Set<number>();
+    let routeMaxImages = 0;
+    let routeSequenceId = "";
+    let routeStartTime = Date.now();
+    let routeActiveProvider = "auto";
+    let routeQuality = "medium";
+    let routeEffectiveSize = "1024x1024";
+    let routeModeration = "low";
+    let routeImageModel: string | null = null;
+    let routeWebSearchEnabled = true;
+    let routePromptMode: "auto" | "direct" = "auto";
+    let routeQualityWarnings: unknown[] = [];
+    let routeComposerPrompt: string | null = null;
+    let routeComposerInsertedPrompts: ReturnType<typeof normalizeComposerInsertedPrompts> = [];
+    let latestUsage: Record<string, number> | null = null;
+    let latestWebSearchCalls = 0;
+    let latestExtraIgnored = 0;
+    if (!asyncMode) {
+      res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders?.();
+    }
+    try {
+      const {
+        prompt,
+        quality: rawQuality = "medium",
+        size = "1024x1024",
+        format = "png",
+        moderation = "low",
+        provider = "auto",
+        references = [],
+        mode: promptMode = "auto",
+        model: rawModel,
+        reasoningEffort: rawReasoningEffort,
+        webSearchEnabled: rawWebSearchEnabled = true,
+      } = req.body;
+      const composerPrompt = normalizeComposerPrompt(req.body?.composerPrompt);
+      const composerInsertedPrompts = normalizeComposerInsertedPrompts(
+        req.body?.composerInsertedPrompts,
+      );
+      const maxImages = normalizeMaxImages(maxImagesResult.value, maxAllowedImages);
+      const normalizedPromptMode = promptMode === "direct" ? "direct" : "auto";
+      const { quality, warnings: qualityWarnings } = normalizeOAuthParams({ provider, quality: rawQuality });
+      const providerOptions = resolveProviderOptions(ctx, {
+        provider,
+        rawModel,
+        rawReasoningEffort,
+        rawSize: size,
+        rawWebSearchEnabled,
+      });
+      if (providerOptions.error) {
+        finishStatus = "error";
+        finishHttpStatus = providerOptions.status;
+        finishErrorCode = providerOptions.code;
+        return respondMultimodeValidationError(res, requestId, asyncMode, providerOptions.status, {
+          error: providerOptions.error,
+          code: providerOptions.code,
+          status: providerOptions.status,
+          requestId,
+        });
+      }
+      const imageModel = providerOptions.model;
+      const reasoningEffort = providerOptions.reasoningEffort;
+      const effectiveSize = providerOptions.size;
+      const webSearchEnabled = providerOptions.webSearchEnabled;
+      const activeProvider = providerOptions.provider;
+      const moderationCheck = validateModeration(ctx, moderation);
+      if (moderationCheck.error) {
+        finishStatus = "error";
+        finishHttpStatus = 400;
+        finishErrorCode = "INVALID_MODERATION";
+        return respondMultimodeValidationError(res, requestId, asyncMode, 400, {
+          error: moderationCheck.error,
+          code: finishErrorCode,
+          status: 400,
+          requestId,
+        });
+      }
+      const refCheckResult = validateAndNormalizeRefs(references);
+      if (refCheckResult.error) {
+        finishStatus = "error";
+        finishHttpStatus = 400;
+        finishErrorCode = refCheckResult.code;
+        return respondMultimodeValidationError(res, requestId, asyncMode, 400, {
+          error: refCheckResult.error,
+          code: refCheckResult.code,
+          status: 400,
+          requestId,
+        });
+      }
+      const refCheck = refCheckResult as Extract<typeof refCheckResult, { refs: string[] }>;
+      const incomingProviderUrl = typeof req.body?.providerUrl === "string" && req.body.providerUrl.startsWith("http") ? req.body.providerUrl : null;
+      const referencePayload = summarizeReferencePayload(references);
+      const started = startJob({
+        requestId,
+        kind: "multimode",
+        prompt,
+        meta: {
+          kind: "multimode",
+          quality,
+          model: imageModel,
+          size: effectiveSize,
+          maxImages,
+          refsCount: referencePayload.refsCount,
+          referenceBytes: referencePayload.referenceBytes,
+          referenceB64Chars: referencePayload.referenceB64Chars,
+          composerPrompt,
+          composerInsertedPrompts,
+        },
+      });
+      if (started && isStartJobFailure(started)) {
+        finishStatus = "error";
+        finishHttpStatus = started.code === "TOO_MANY_JOBS" ? 429 : 409;
+        finishErrorCode = started.code;
+        if (started.code === "TOO_MANY_JOBS") {
+          res.setHeader("Retry-After", String(INFLIGHT_RETRY_AFTER_SECONDS));
+        }
+        return respondMultimodeValidationError(res, requestId, asyncMode, finishHttpStatus, {
+          error: started.code === "TOO_MANY_JOBS"
+            ? "Too many concurrent generation jobs"
+            : "Request ID already in use",
+          code: started.code,
+          status: finishHttpStatus,
+          requestId,
+        });
+      }
+      jobOwned = true;
+      registerJobAbortController(requestId, cancelController);
+      if (asyncMode) res.status(202).json({ requestId });
+      logEvent("multimode", "request", { requestId, quality, model: imageModel, size: effectiveSize, moderation, maxImages, refs: refCheck.refs.length, referenceBytes: referencePayload.referenceBytes, promptChars: typeof prompt === "string" ? prompt.length : 0, webSearchEnabled, });
+      const startTime = Date.now();
+      const mimeMap: Record<string, string> = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
+      const mmFormat = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" ? "jpeg" : String(format);
+      const mime = mimeMap[mmFormat] || "image/png";
+      const sequenceId = `seq_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
+      routeMaxImages = maxImages;
+      routeSequenceId = sequenceId;
+      routeStartTime = startTime;
+      routeActiveProvider = activeProvider ?? "auto";
+      routeQuality = quality;
+      routeEffectiveSize = effectiveSize;
+      routeModeration = moderation;
+      routeImageModel = imageModel ?? null;
+      routeWebSearchEnabled = webSearchEnabled ?? false;
+      routePromptMode = normalizedPromptMode;
+      routeQualityWarnings = qualityWarnings;
+      routeComposerPrompt = composerPrompt;
+      routeComposerInsertedPrompts = composerInsertedPrompts;
+      await mkdir(ctx.config.storage.generatedDir, { recursive: true });
+      const persistAndSendImage = async ( image: MultimodeImage, index: number, totalReturned: number, status: ReturnType<typeof sequenceStatus>, ) => {
+        if (persistedIndexes.has(index)) return;
+        throwIfJobCanceled(requestId);
+        const resultMime = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api"
+          ? (image.mime || detectImageMimeFromB64(image.b64) || mime)
+          : mime;
+        const resultFormat = activeProvider === "grok" || activeProvider === "agy" || activeProvider === "grok-api" || activeProvider === "gemini-api" ? imageFormatFromMime(resultMime) : mmFormat;
+        const rand = randomBytes(ctx.config.ids.generatedHexBytes).toString("hex");
+        const filename = `${Date.now()}_${rand}_multimode_${index}.${resultFormat}`;
+        const createdAt = Date.now();
+        const meta = {
+          kind: "multimode-image",
+          generationStrategy: "one-call-text-sequence",
+          sequenceId,
+          sequenceIndex: index + 1,
+          sequenceTotalRequested: maxImages,
+          sequenceTotalReturned: totalReturned,
+          sequenceStatus: status,
+          stageLabel: String.fromCharCode(65 + index),
+          requestId,
+          prompt,
+          userPrompt: prompt,
+          revisedPrompt: image.revisedPrompt || null,
+          promptMode: normalizedPromptMode,
+          composerPrompt,
+          composerInsertedPrompts,
+          quality,
+          size: effectiveSize,
+          format: resultFormat,
+          moderation,
+          model: activeProvider === "grok" ? (quality === "high" ? "grok-imagine-image-quality" : imageModel) : imageModel,
+          provider: activeProvider,
+          createdAt,
+          usage: latestUsage,
+          webSearchCalls: latestWebSearchCalls,
+          webSearchEnabled,
+          refsCount: refCheck.refs.length,
+          ...(image.providerUrl ? { providerUrl: image.providerUrl } : {}),
+        };
+        const rawBuffer = Buffer.from(image.b64, "base64");
+        const embedded = await embedImageMetadataBestEffort(rawBuffer, resultFormat, meta, {
+          version: ctx.packageVersion,
+        });
+        const mmFilePath = join(ctx.config.storage.generatedDir, filename);
+        await writeFile(mmFilePath, embedded.buffer);
+        await safeWriteSidecar(mmFilePath + ".json", meta);
+        generateImageThumbnailFromBuffer(embedded.buffer, mmFilePath).catch(() => {});
+        invalidateHistoryIndex();
+        const item = {
+          image: `data:${resultMime};base64,${image.b64}`,
+          filename,
+          createdAt,
+          ...(image.providerUrl ? { providerUrl: image.providerUrl } : {}),
+          revisedPrompt: image.revisedPrompt || null,
+          sequenceId,
+          sequenceIndex: index + 1,
+          sequenceTotalRequested: maxImages,
+          sequenceTotalReturned: totalReturned,
+          sequenceStatus: status,
+        };
+        persistedIndexes.add(index);
+        images.push(item);
+        dualEmitMultimode(res, requestId, "image", item);
+      };
+      dualEmitMultimode(res, requestId, "phase", { phase: "streaming", requestId, sequenceId, maxImages });
+      let generated: { images: Array<{ b64: string; revisedPrompt?: string | null }>; usage: Record<string, number> | null; webSearchCalls?: number; extraIgnored?: number };
+      if (activeProvider === "gemini-api") {
+        const r = await generateViaGeminiApi(prompt, requireRuntimeContext(ctx), {
+          model: imageModel,
+          size: effectiveSize,
+          signal: cancelController.signal,
+          requestId,
+          references: refCheck.refDetails,
+        });
+        generated = {
+          images: [{ b64: r.b64, revisedPrompt: r.revisedPrompt }],
+          usage: r.usage,
+          webSearchCalls: r.webSearchCalls,
+        };
+      } else if (activeProvider === "agy") {
+        const r = await generateViaAgy(prompt, {
+          references: refCheck.refDetails,
+          signal: cancelController.signal,
+          requestId,
+        });
+        generated = {
+          images: [{ b64: r.b64, revisedPrompt: r.revisedPrompt }],
+          usage: r.usage,
+          webSearchCalls: r.webSearchCalls,
+        };
+      } else if (activeProvider === "grok" || activeProvider === "grok-api") {
+        const directApiKey = activeProvider === "grok-api" ? ctx.xaiApiKey : undefined;
+        const grokModel = quality === "high" ? "grok-imagine-image-quality" : imageModel;
+        const grokRefs = incomingProviderUrl
+          ? [{ b64: "", url: incomingProviderUrl }, ...refCheck.refDetails]
+          : refCheck.refDetails;
+        generated = await generateMultimodeViaGrok(prompt, ctx, {
+          model: grokModel,
+          maxImages,
+          size: effectiveSize,
+          signal: cancelController.signal,
+          requestId,
+          references: grokRefs,
+          directApiKey,
+          onFinalImage: async (image, index) => {
+            const totalReturned = Math.max(index + 1, images.length + 1);
+            await persistAndSendImage(image, index, totalReturned, sequenceStatus(totalReturned, maxImages));
+          },
+        });
+      } else {
+        generated = await generateMultimodeViaResponses(
+          activeProvider,
+          prompt,
+          quality,
+          effectiveSize,
+          moderation,
+          refCheck.refDetails || refCheck.refs,
+          requestId,
+          normalizedPromptMode,
+          ctx,
+          {
+            model: imageModel,
+            maxImages,
+            reasoningEffort,
+            webSearchEnabled,
+            onPartialImage: (partial) => {
+                if (isJobCanceled(requestId)) return;
+                const pd = { image: `data:${mime};base64,${partial.b64}`, requestId, sequenceId, index: partial.index };
+                if (!res.writableEnded && !res.destroyed) writeSse(res, "partial", pd);
+                publish(requestId, "partial", pd);
+              },
+            onFinalImage: async (image, index) => {
+              const totalReturned = Math.max(index + 1, images.length + 1);
+              await persistAndSendImage(image, index, totalReturned, sequenceStatus(totalReturned, maxImages));
+            },
+            signal: cancelController.signal,
+          },
+        );
+      }
+      throwIfJobCanceled(requestId);
+      latestUsage = generated.usage || null;
+      latestWebSearchCalls = generated.webSearchCalls || 0;
+      latestExtraIgnored = generated.extraIgnored || 0;
+      for (const [index, image] of generated.images.entries() as IterableIterator<[number, MultimodeImage]>) {
+        await persistAndSendImage(
+          image,
+          index,
+          generated.images.length,
+          sequenceStatus(generated.images.length, maxImages),
+        );
+      }
+      const returned = images.length;
+      const status = sequenceStatus(returned, maxImages);
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      if (returned === 0) {
+        finishStatus = "error";
+        finishHttpStatus = 422;
+        finishErrorCode = "EMPTY_RESPONSE";
+        finishMeta = { sequenceId, filenames: [], imageCount: 0, maxImages, status, composerPrompt: routeComposerPrompt, composerInsertedPrompts: routeComposerInsertedPrompts };
+        dualEmitMultimode(res, requestId, "error", { error: "No image data returned from the multimode stream", code: finishErrorCode, status: finishHttpStatus, requestId, sequenceId, requested: maxImages, returned, });
+        logEvent("multimode", "empty_response", { requestId, sequenceId, maxImages, elapsedMs: Date.now() - startTime });
+        return;
+      }
+      finishMeta = {
+        sequenceId,
+        filenames: images.map((image) => image.filename),
+        imageCount: returned,
+        maxImages,
+        status,
+        composerPrompt: routeComposerPrompt,
+        composerInsertedPrompts: routeComposerInsertedPrompts,
+      };
+      finishHttpStatus = 200;
+      dualEmitMultimode(res, requestId, "done", {
+        ok: true,
+        requestId,
+        sequenceId,
+        requested: maxImages,
+        returned,
+        status,
+        elapsed,
+        images,
+        provider: activeProvider,
+        quality,
+        size: effectiveSize,
+        moderation,
+        model: imageModel,
+        usage: latestUsage,
+        webSearchCalls: latestWebSearchCalls,
+        webSearchEnabled,
+        warnings: qualityWarnings,
+        extraIgnored: latestExtraIgnored,
+        promptMode: normalizedPromptMode,
+      });
+      logEvent("multimode", "saved", { requestId, sequenceId, imageCount: returned, maxImages, status, elapsedMs: Date.now() - startTime, });
+    } catch (e) {
+      const err = errInfo(e);
+      const ext = (err.raw && typeof err.raw === "object" ? err.raw as Record<string, unknown> : {});
+      const fallbackCode = err.code || classifyUpstreamError(err.message);
+      if (isGenerationCanceledError(err.raw) || isJobCanceled(requestId)) {
+        const canceled = makeGenerationCanceledError();
+        finishCanceled = true;
+        finishHttpStatus = canceled.status;
+        finishErrorCode = canceled.code;
+        dualEmitMultimode(res, requestId, "error", { error: canceled.message, code: canceled.code, status: canceled.status, requestId, });
+        return;
+      }
+      if ((fallbackCode === "RESPONSES_IMAGE_TIMEOUT" || err.status === 504) && images.length > 0) {
+        const status = sequenceStatus(images.length, routeMaxImages);
+        const elapsed = ((Date.now() - routeStartTime) / 1000).toFixed(1);
+        finishStatus = "completed";
+        finishHttpStatus = 206;
+        finishMeta = {
+          sequenceId: routeSequenceId,
+          filenames: images.map((image) => image.filename),
+          imageCount: images.length,
+          maxImages: routeMaxImages,
+          status,
+          partialErrorCode: "RESPONSES_IMAGE_TIMEOUT",
+          composerPrompt: routeComposerPrompt,
+          composerInsertedPrompts: routeComposerInsertedPrompts,
+        };
+        dualEmitMultimode(res, requestId, "done", {
+          ok: true,
+          partial: true,
+          requestId,
+          sequenceId: routeSequenceId,
+          requested: routeMaxImages,
+          returned: images.length,
+          status,
+          elapsed,
+          images,
+          provider: routeActiveProvider,
+          quality: routeQuality,
+          size: routeEffectiveSize,
+          moderation: routeModeration,
+          model: routeImageModel,
+          usage: latestUsage,
+          webSearchCalls: latestWebSearchCalls,
+          webSearchEnabled: routeWebSearchEnabled,
+          warnings: routeQualityWarnings,
+          extraIgnored: latestExtraIgnored,
+          promptMode: routePromptMode,
+          warning: {
+            code: "RESPONSES_IMAGE_TIMEOUT",
+            message: "The provider timed out after returning partial multimode results.",
+          },
+        });
+        logEvent("multimode", "partial_timeout", { requestId, sequenceId: routeSequenceId, imageCount: images.length, maxImages: routeMaxImages, });
+        return;
+      }
+      finishStatus = "error";
+      finishHttpStatus = err.status || 500;
+      finishErrorCode = fallbackCode || "MULTIMODE_GENERATE_FAILED";
+      logError("multimode", "error", err.raw, { requestId, code: finishErrorCode });
+      dualEmitMultimode(res, requestId, "error", { error: err.message, code: finishErrorCode, status: finishHttpStatus, requestId, upstreamCode: ext.upstreamCode || null, upstreamType: ext.upstreamType || null, upstreamParam: ext.upstreamParam || null, });
+    } finally {
+      if (jobOwned) finishJob(requestId, {
+        canceled: finishCanceled,
+        status: finishStatus,
+        httpStatus: finishHttpStatus,
+        errorCode: finishErrorCode,
+        meta: finishMeta,
+      });
+      if (!res.writableEnded) res.end();
+    }
+}

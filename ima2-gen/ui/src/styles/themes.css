@@ -1,0 +1,82 @@
+/* ============================================================================
+ * Canvas / minimap tokens — single dark theme (Phase 010: theme families and
+ * light mode removed; values aligned to the site palette #0b0b0f).
+ * ============================================================================ */
+:root {
+  --canvas-grid: #26262f;
+  --minimap-mask: rgba(11, 11, 15, 0.7);
+  --minimap-node-fill: #f0f0f4;
+  --minimap-node-stroke: #1a1a20;
+  --minimap-bg: #14141a;
+  --minimap-border: #26262f;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: grid;
+  --gallery-rail-w: clamp(61px, 6vw, 95px);
+  --history-strip-h: 74px;
+  --nav-rail-w: 52px;
+  grid-template-columns: var(--nav-rail-w) 260px var(--gallery-rail-w) minmax(0, 1fr) auto;
+  height: 100dvh;
+  overflow: hidden;
+}
+.app--history-horizontal {
+  grid-template-columns: var(--nav-rail-w) 260px minmax(0, 1fr) auto;
+  grid-template-rows: var(--history-strip-h) minmax(0, 1fr);
+}
+.app--history-horizontal .sidebar {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.app--history-horizontal .history-strip {
+  grid-column: 3;
+  grid-row: 1;
+}
+.app--history-horizontal .canvas,
+.app--history-horizontal .node-canvas,
+.app--history-horizontal .card-news-workspace,
+.app--history-horizontal .settings-workspace {
+  grid-column: 3;
+  grid-row: 2;
+  height: calc(100dvh - var(--history-strip-h));
+  min-height: 0;
+}
+.app--history-horizontal .right-panel {
+  grid-column: 4;
+  grid-row: 1 / span 2;
+}
+.app--history-horizontal .settings-shell {
+  height: calc(100dvh - var(--history-strip-h) - 48px);
+}
+.app--history-sidebar {
+  grid-template-columns: var(--nav-rail-w) 260px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) var(--history-strip-h);
+}
+.app--history-sidebar .sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  height: auto;
+}
+.app--history-sidebar .history-strip {
+  grid-column: 2;
+  grid-row: 2;
+}
+.app--history-sidebar .canvas,
+.app--history-sidebar .node-canvas,
+.app--history-sidebar .card-news-workspace,
+.app--history-sidebar .settings-workspace {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+.app--history-sidebar .right-panel {
+  grid-column: 4;
+  grid-row: 1 / span 2;
+}

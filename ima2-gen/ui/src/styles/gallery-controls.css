@@ -1,0 +1,46 @@
+.gallery__title-row {
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.gallery__scope {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.gallery__scope button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gallery__scope button.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.gallery__scope button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@media (max-width: 760px) {
+  .gallery__scope {
+    margin-left: 0;
+  }
+}

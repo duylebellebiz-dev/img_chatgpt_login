@@ -1,0 +1,61 @@
+import { useAppStore } from "../store/useAppStore";
+import { useI18n } from "../i18n";
+
+function truncate(s: string, max = 28) {
+  const t = s.trim().replace(/\s+/g, " ");
+  return t.length > max ? `${t.slice(0, max)}...` : t;
+}
+
+export function InFlightList() {
+  const inFlight = useAppStore((s) => s.inFlight);
+  const cancelInFlightJob = useAppStore((s) => s.cancelInFlightJob);
+  const videoProgress = useAppStore((s) => s.videoProgress);
+  const { t } = useI18n();
+
+  const phaseLabels: Record<string, string> = {
+    queued: t("inflight.queued"),
+    planning: t("inflight.planning"),
+    streaming: t("inflight.streaming"),
+    decoding: t("inflight.decoding"),
+    canceling: t("inflight.canceling"),
+  };
+
+  if (inFlight.length === 0) return null;
+
+  return (
+    <ul className="in-flight-list">
+      {inFlight.map((f) => {
+        const phaseLabel = f.phase ? phaseLabels[f.phase] ?? f.phase : t("inflight.queued");
+        const fullPrompt = f.prompt.trim().replace(/\s+/g, " ");
+        const promptLabel = fullPrompt || t("inflight.noPrompt");
+        return (
+          <li
+            key={f.id}
+            className="in-flight-item"
+            data-phase={f.phase ?? "queued"}
+            title={promptLabel}
+            aria-label={`${phaseLabel}: ${promptLabel}`}
+          >
+            <span className="in-flight-prompt">{truncate(f.prompt)}</span>
+            <span className="in-flight-phase">
+              {f.kind === "video" && videoProgress != null && videoProgress > 0
+                ? `${Math.round(videoProgress * 100)}%`
+                : phaseLabel}
+            </span>
+            <button
+              type="button"
+              className="in-flight-cancel"
+              onClick={() => void cancelInFlightJob(f.id)}
+              disabled={f.phase === "canceling"}
+              aria-label={t("inflight.cancelAria", { prompt: promptLabel })}
+              title={t("common.cancel")}
+            >
+              ×
+            </button>
+            <span className="in-flight-spinner" aria-hidden="true" />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}

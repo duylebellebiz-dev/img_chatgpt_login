@@ -1,0 +1,17 @@
+[
+  {"id":"cinematic","name":"Cinematic","category":"style","promptFragment":"cinematic production design, anamorphic composition, restrained film grain, rich tonal separation","modes":["both"]},
+  {"id":"anime","name":"Anime","category":"style","promptFragment":"high-detail anime key visual, expressive linework, cel shading, deliberate color scripting","modes":["both"]},
+  {"id":"watercolor","name":"Watercolor","category":"style","promptFragment":"transparent watercolor washes on textured cold-press paper, soft pigment blooms and granulation","modes":["both"]},
+  {"id":"oil-painting","name":"Oil Painting","category":"style","promptFragment":"traditional oil painting with layered glazes, visible impasto brushwork and deep painterly color","modes":["both"]},
+  {"id":"pencil-sketch","name":"Pencil Sketch","category":"style","promptFragment":"graphite pencil drawing with confident contour lines, cross-hatching and subtle paper tooth","modes":["both"]},
+  {"id":"pixel-art","name":"Pixel Art","category":"style","promptFragment":"hand-crafted pixel art with a limited palette, crisp clusters and controlled dithering","modes":["both"]},
+  {"id":"vaporwave","name":"Vaporwave","category":"style","promptFragment":"vaporwave aesthetic, pastel neon gradients, retro digital artifacts, chrome accents and nostalgic geometry","modes":["both"]},
+  {"id":"noir","name":"Noir","category":"style","promptFragment":"classic film noir, high-contrast monochrome photography, oblique shadows and tense urban atmosphere","modes":["both"]},
+  {"id":"pop-art","name":"Pop Art","category":"style","promptFragment":"bold pop-art treatment with saturated primaries, halftone dots, graphic outlines and punchy repetition","modes":["both"]},
+  {"id":"surreal","name":"Surreal","category":"style","promptFragment":"dreamlike surrealism with impossible spatial relationships, symbolic objects and uncanny photoreal detail","modes":["both"]},
+  {"id":"photorealistic","name":"Photorealistic","category":"style","promptFragment":"photorealistic material detail, physically plausible optics, natural texture and true-to-life color response","modes":["both"]},
+  {"id":"minimalist","name":"Minimalist","category":"style","promptFragment":"minimalist visual language, essential forms, generous negative space and a disciplined reduced palette","modes":["both"]},
+  {"id":"baroque","name":"Baroque","category":"style","promptFragment":"opulent Baroque composition, dramatic diagonals, ornate detail, theatrical movement and rich fabrics","modes":["both"]},
+  {"id":"cyberpunk","name":"Cyberpunk","category":"style","promptFragment":"dense cyberpunk worldbuilding, rain-slick surfaces, layered neon signage, advanced machinery and urban decay","modes":["both"]},
+  {"id":"ukiyo-e","name":"Ukiyo-e","category":"style","promptFragment":"Japanese ukiyo-e woodblock print, flowing contour lines, flat mineral colors and decorative patterning","modes":["both"]}
+]

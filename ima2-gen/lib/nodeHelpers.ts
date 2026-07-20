@@ -1,0 +1,96 @@
+import type { Request, Response } from "express";
+import { loadNodeB64, loadNodeMeta } from "./nodeStore.js";
+import { detectImageMimeFromB64 } from "./refs.js";
+import type { GrokReferenceImage } from "./grokImageAdapter.js";
+import type { UpstreamErr } from "./generationErrors.js";
+import type { RuntimeContext } from "./runtimeContext.js";
+import { writeSse } from "./routeHelpers.js";
+import { publish } from "./eventBus.js";
+
+export interface NodeGenerateBody {
+  prompt?: string;
+  parentNodeId?: string;
+  requestId?: string;
+  sessionId?: string;
+  clientNodeId?: string;
+  references?: unknown;
+  quality?: string;
+  size?: string;
+  format?: string;
+  moderation?: string;
+  externalSrc?: string | null;
+  mode?: string;
+  contextMode?: string;
+  searchMode?: string;
+  model?: string;
+  reasoningEffort?: string;
+  provider?: string;
+  webSearchEnabled?: boolean;
+  async?: boolean;
+}
+
+export function asUpstream(e: unknown): UpstreamErr {
+  return (e && typeof e === "object" ? e : {}) as UpstreamErr;
+}
+
+export function wantsSse(req: Request) {
+  const accept = typeof req.headers.accept === "string" ? req.headers.accept : "";
+  return accept.includes("text/event-stream");
+}
+
+export function writeNodeError(
+  res: Response,
+  status: number,
+  code: string,
+  message: string,
+  parentNodeId: string | null,
+  details: Record<string, unknown> = {},
+  requestId?: string,
+) {
+  const payload = {
+    error: { code, message },
+    parentNodeId,
+    status,
+    ...details,
+  };
+  if (requestId) publish(requestId, "error", payload);
+  if (res.writableEnded || res.destroyed) return;
+  if (res.headersSent) {
+    writeSse(res, "error", payload);
+    res.end();
+    return;
+  }
+  res.status(status).json(payload);
+}
+
+export async function loadParentNodeB64(ctx: RuntimeContext, nodeId: string) {
+  for (const ext of ["png", "jpeg", "webp"] as const) {
+    const meta = await loadNodeMeta(ctx.rootDir, nodeId, ext, ctx.config.storage.generatedDir);
+    if (meta) return loadNodeB64(ctx.rootDir, `${nodeId}.${ext}`, ctx.config.storage.generatedDir);
+  }
+  return loadNodeB64(ctx.rootDir, `${nodeId}.png`, ctx.config.storage.generatedDir);
+}
+
+export function toGrokReferences(parentB64: string | null, refs: Array<GrokReferenceImage | string>): GrokReferenceImage[] {
+  const parentMime = parentB64 ? detectImageMimeFromB64(parentB64) : null;
+  const parentRefs = parentB64
+    ? [{ b64: parentB64, declaredMime: parentMime, detectedMime: parentMime }]
+    : [];
+  const normalizedRefs = refs.map((ref) => typeof ref === "string" ? { b64: ref } : ref);
+  return [...parentRefs, ...normalizedRefs];
+}
+
+export function nodeErrorDetails(finalErr: Record<string, unknown>, lastErr: UpstreamErr | null) {
+  return {
+    upstreamCode: lastErr?.upstreamCode || lastErr?.code || null,
+    upstreamType: lastErr?.upstreamType || null,
+    upstreamParam: lastErr?.upstreamParam || null,
+    errorEventType: lastErr?.eventType || null,
+    errorEventCount: lastErr?.eventCount ?? null,
+    diagnosticReason: finalErr.diagnosticReason || lastErr?.diagnosticReason || null,
+    retryKind: finalErr.retryKind || lastErr?.retryKind || null,
+    referencesDroppedOnRetry: finalErr.referencesDroppedOnRetry ?? lastErr?.referencesDroppedOnRetry ?? null,
+    refsCount: finalErr.refsCount ?? lastErr?.refsCount ?? null,
+    inputImageCount: finalErr.inputImageCount ?? lastErr?.inputImageCount ?? null,
+  };
+}

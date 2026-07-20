@@ -1,0 +1,198 @@
+---
+import DocsLayout from '../../../../layouts/DocsLayout.astro';
+import { docsPath } from '../../../../i18n/docs';
+
+const d = (slug: string) => docsPath(import.meta.env.BASE_URL, 'ko', slug);
+const apiMd = 'https://github.com/lidge-jun/ima2-gen/blob/main/docs/API.md';
+
+// JSON 중괄호가 Astro 표현식으로 파싱되지 않도록 리터럴 문자열로 렌더링.
+const genBody = `{
+  "prompt": "a shiba in space",
+  "quality": "medium",
+  "size": "1024x1024",
+  "format": "png",
+  "moderation": "low",
+  "provider": "oauth",
+  "model": "gpt-5.4",
+  "references": [],
+  "requestId": "optional-client-id"
+}`;
+---
+
+<DocsLayout
+  lang="ko"
+  active="reference/api"
+  title="서버 API"
+  description="로컬 ima2-gen 서버의 엔드포인트 그룹: 생성, 히스토리, 세션·그래프, 스토리지, 작업, 공통 에러 코드."
+>
+  <p class="docs-eyebrow">레퍼런스</p>
+  <h1>서버 API</h1>
+  <p class="lead">
+    CLI는 로컬 서버 위의 얇은 셸 — 대부분의 <code>/api/*</code> 라우트에 CLI 래퍼가 있지만, Agent
+    모드는 웹 UI 전용입니다. Prompt builder는 <code>ima2 prompt build</code>로도 사용할 수 있습니다.
+    이 페이지는 엔드포인트 그룹을 정리합니다; 전체 요청/응답 형태는 <a href={apiMd}>API.md</a>를 보세요.
+  </p>
+
+  <h2>베이스 URL</h2>
+  <p>
+    모든 엔드포인트는 로컬에서 제공됩니다. 기본 베이스는 <code>http://localhost:3333</code>이고, 실제
+    바인딩 포트는 <code>~/.ima2/server.json</code>에 광고됩니다(<code>backend.url</code> 권장).
+  </p>
+
+  <h2>생성</h2>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /api/generate</code></td><td>텍스트-이미지 및 레퍼런스 기반 루트 생성.</td></tr>
+      <tr><td><code>POST /api/edit</code></td><td>이미지 편집 / image-to-image 생성.</td></tr>
+      <tr><td><code>POST /api/generate/multimode</code></td><td>Multimode 배치. 비동기 POST (202) + SSE 멀티플렉싱 지원.</td></tr>
+      <tr><td><code>POST /api/node/generate</code></td><td>Node 모드 생성 및 자식 편집. 비동기 POST (202) + SSE 멀티플렉싱 지원.</td></tr>
+      <tr><td><code>GET /api/node/:nodeId</code></td><td>저장된 노드 메타데이터와 에셋 URL 조회.</td></tr>
+      <tr><td><code>GET /api/events</code></td><td>비동기 생성 진행 이벤트를 위한 SSE 멀티플렉스 채널.</td></tr>
+      <tr><td><code>POST /api/video/generate</code></td><td>Grok 비디오 생성 (T2V/I2V/Ref2V). 비동기 POST (202) + SSE 멀티플렉싱 지원.</td></tr>
+      <tr><td><code>POST /api/video/edit</code></td><td>Grok 비디오-투-비디오 편집. 결과 MP4를 generated artifact로 저장.</td></tr>
+      <tr><td><code>POST /api/video/extend</code></td><td>기존 MP4의 마지막 프레임에서 이어붙이기.</td></tr>
+      <tr><td><code>GET /api/video/frame</code></td><td>generated MP4에서 PNG 프레임 추출.</td></tr>
+      <tr><td><code>POST /api/video/analyze</code></td><td>generated MP4의 첫/마지막 프레임을 Grok 4.3 vision으로 분석.</td></tr>
+    </tbody>
+  </table>
+  <h4>POST /api/generate — 요청 바디</h4>
+  <pre><code>{genBody}</code></pre>
+  <p>
+    품질: low, medium, high. Moderation: auto, low. Provider: auto, oauth, api, grok, grok-api, agy, gemini-api.
+    권장 OpenAI 모델은 <code>gpt-5.4</code>; 앱 기본값은 <code>gpt-5.4-mini</code>입니다.
+    Grok 모델은 <code>grok-imagine-image</code>와 <code>grok-imagine-image-quality</code>입니다.
+    Gemini 모델은 <code>nano-banana-2</code>(Flash)와 <code>nano-banana-pro</code>(Pro)입니다.
+    웹 UI는 <code>GET /api/events</code> (SSE 멀티플렉싱)로 모든 생성 진행 이벤트를 받습니다:
+    POST 라우트에 <code>{"{ async: true, requestId }"}</code>를 보내면 <code>202</code> 응답 후
+    이벤트 버스를 통해 <code>phase</code>, <code>partial</code>, <code>done</code>,
+    <code>error</code> 이벤트가 멀티플렉싱됩니다. CLI에서
+    <code>Accept: text/event-stream</code>을 보내면 기존 per-request SSE를 그대로 사용합니다.
+  </p>
+  <div class="docs-callout docs-callout-info">
+    <strong>비디오 생성.</strong> <code>POST /api/video/generate</code> (SSE)는 Grok을 통해 비디오를
+    생성합니다. 모델: <code>grok-imagine-video</code>, 정식
+    <code>grok-imagine-video-1.5</code>; <code>grok-imagine-video-1.5-preview</code>는 호환
+    alias로만 받습니다. 모드: text-to-video, image-to-video, reference-to-video (2–7개 ref).
+    <code>1080p</code>는 1.5 단일 이미지/프레임 I2V에서만 사용할 수 있고 Ref2V, V2V edit,
+    extension은 기본 모델 경로로 유지됩니다. CLI:
+    <code>ima2 video</code>. 확장 표면은 <code>ima2 video edit</code>,
+    <code>ima2 video extend</code>, <code>ima2 video frame</code>, <code>ima2 video analyze</code>입니다.
+    요청 본문은 <code>plannerModel</code>(기본 <code>grok-4.3</code>)와 순차 클립 연속성용
+    <code>storyboard</code>를 받습니다. frame/analyze는 generated MP4 파일을 대상으로 하며 analyze는
+    임의 원격 URL을 거부합니다.
+  </div>
+
+  <h2>히스토리</h2>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/history</code></td><td>생성 에셋 목록; <code>?groupBy=session</code>은 세션 제목별 그룹.</td></tr>
+      <tr><td><code>DELETE /api/history/:filename</code></td><td>생성 에셋 톰스톤(소프트 삭제).</td></tr>
+      <tr><td><code>POST /api/history/:filename/restore</code></td><td>최근 삭제된 에셋 복원.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>세션 &amp; 그래프</h2>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/sessions</code> · <code>POST /api/sessions</code></td><td>그래프 세션 목록 또는 생성.</td></tr>
+      <tr><td><code>GET /api/sessions/:id</code></td><td>세션과 그래프 로드.</td></tr>
+      <tr><td><code>PATCH /api/sessions/:id</code> · <code>DELETE /api/sessions/:id</code></td><td>세션 이름 변경 또는 삭제.</td></tr>
+      <tr><td><code>PUT /api/sessions/:id/graph</code></td><td>그래프 스냅샷 저장.</td></tr>
+    </tbody>
+  </table>
+  <div class="docs-callout docs-callout-warn">
+    <strong>낙관적 동시성.</strong> 그래프 저장은 현재 버전이 담긴 <code>If-Match</code> 헤더가
+    필요합니다. 버전이 stale하면 <code>GRAPH_VERSION_CONFLICT</code>와 현재 버전을 반환합니다 — 다른
+    탭이 그래프를 바꿨다는 증거가 아니라, stale 스냅샷에 대해 저장했다는 뜻입니다.
+  </div>
+
+  <h2>Agent 모드 &amp; 디스커버리</h2>
+  <p>
+    Agent 모드는 대화형 이미지 워크스페이스입니다(세션, 턴, durable 세션 큐). 이 라우트들은 항상
+    등록되지만 <strong>CLI 래퍼가 없습니다</strong> — Agent 모드는 웹 UI에서 사용하세요.
+  </p>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/capabilities</code></td><td>에이전트 디스커버리: 지원 모델, 유효 값, 한도, 버전 (<code>ima2 capabilities</code>).</td></tr>
+      <tr><td><code>GET · POST /api/agent/sessions</code></td><td>에이전트 세션 목록 또는 생성.</td></tr>
+      <tr><td><code>GET · PATCH · DELETE /api/agent/sessions/:id</code></td><td>세션 로드·수정·삭제.</td></tr>
+      <tr><td><code>POST /api/agent/sessions/:id/turns</code></td><td>에이전트 턴 실행; 슬래시 명령과 <code>/question</code> 지원.</td></tr>
+      <tr><td><code>GET · POST /api/agent/sessions/:id/queue</code></td><td>durable 큐 조회·적재 (<code>/api/agent/queue/:itemId/cancel</code> · <code>retry</code>로 항목 관리).</td></tr>
+      <tr><td><code>POST /api/prompt-builder/chat</code></td><td>Prompt-builder 어시스턴트 (<code>ima2 prompt build</code>).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>헬스 · 스토리지 · 작업</h2>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/health</code></td><td>헬스 체크 (<code>ima2 ping</code>).</td></tr>
+      <tr><td><code>GET /api/providers</code></td><td>프로바이더 가용성과 런타임 포트 (<code>ima2 providers</code>).</td></tr>
+      <tr><td><code>GET /api/oauth/status</code></td><td>OAuth 프록시 상태 (<code>ima2 oauth status</code>).</td></tr>
+      <tr><td><code>GET /api/grok/status</code></td><td>번들 progrok 상태와 xAI 모델 probe (<code>ima2 grok status</code>).</td></tr>
+      <tr><td><code>GET /api/storage/status</code></td><td>스토리지 점검.</td></tr>
+      <tr><td><code>POST /api/storage/open-generated-dir</code></td><td>OS 파일 매니저에서 생성 디렉터리 열기.</td></tr>
+      <tr><td><code>GET /api/inflight</code> · <code>DELETE /api/inflight/:id</code></td><td>진행 중 작업 목록 또는 강제 제거.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>공통 에러 코드</h2>
+  <table>
+    <thead><tr><th>코드</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td><code>API_KEY_REQUIRED</code></td><td>설정된 key 없이 API 경로 요청.</td></tr>
+      <tr><td><code>INVALID_IMAGE_MODEL</code></td><td>모델 이름이 알 수 없거나 미지원.</td></tr>
+      <tr><td><code>IMAGE_MODEL_UNSUPPORTED</code></td><td>모델은 있으나 이미지 생성 불가.</td></tr>
+      <tr><td><code>SAFETY_REFUSAL</code> · <code>MODERATION_REFUSED</code></td><td>업스트림 안전/모더레이션 거부.</td></tr>
+      <tr><td><code>AUTH_CHATGPT_EXPIRED</code></td><td>Codex/ChatGPT OAuth 세션 만료.</td></tr>
+      <tr><td><code>AUTH_API_KEY_INVALID</code></td><td>API key가 무효·취소·할당량 초과.</td></tr>
+      <tr><td><code>NETWORK_FAILED</code></td><td>네트워크·프록시·VPN·방화벽 실패.</td></tr>
+      <tr><td><code>OAUTH_UNAVAILABLE</code></td><td>로컬 OAuth 프록시 사용 불가.</td></tr>
+      <tr><td><code>GRAPH_VERSION_CONFLICT</code></td><td>stale 그래프 버전에 대한 저장.</td></tr>
+      <tr><td><code>NODE_NOT_FOUND</code></td><td>노드 메타데이터를 찾을 수 없음.</td></tr>
+      <tr><td><code>GROK_REF_TOO_MANY</code></td><td>Grok 요청에 총 세 장을 넘는 입력 이미지가 포함됨.</td></tr>
+      <tr><td><code>GROK_MASK_UNSUPPORTED</code></td><td>Grok edit이 mask와 함께 요청됨.</td></tr>
+      <tr><td><code>INVALID_GROK_IMAGE_MODEL</code></td><td>Grok 요청이 지원하지 않는 이미지 모델을 사용함.</td></tr>
+      <tr><td><code>GROK_RATE_LIMITED</code> · <code>GROK_AUTH_FAILED</code></td><td>progrok을 통한 xAI rate-limit 또는 auth 실패.</td></tr>
+      <tr><td><code>GROK_SEARCH_TIMEOUT</code> · <code>GROK_PLANNER_TIMEOUT</code> · <code>GROK_IMAGE_TIMEOUT</code></td><td>Grok 단계 중 하나가 timeout budget을 초과함.</td></tr>
+      <tr><td><code>AGY_GENERATION_FAILED</code></td><td>Gemini(agy) 이미지 생성 실패.</td></tr>
+      <tr><td><code>AGY_TIMEOUT</code></td><td>agy CLI 프로세스가 360초 timeout 초과.</td></tr>
+      <tr><td><code>AGY_QUOTA_EXHAUSTED</code></td><td>Gemini API 할당량 소진(rate limit).</td></tr>
+      <tr><td><code>AGY_VIDEO_UNSUPPORTED</code></td><td>Gemini(agy) 프로바이더는 비디오 생성 미지원.</td></tr>
+      <tr><td><code>AGY_REF_TOO_MANY</code></td><td>agy 레퍼런스 이미지 초과(최대 3장).</td></tr>
+      <tr><td><code>GEMINI_API_KEY_MISSING</code></td><td>Gemini API key 또는 Vertex AI 자격증명 미설정.</td></tr>
+      <tr><td><code>GEMINI_API_RATE_LIMITED</code></td><td>Gemini API rate limit(429).</td></tr>
+      <tr><td><code>GEMINI_API_SAFETY_BLOCKED</code></td><td>Gemini API safety 필터로 생성 차단.</td></tr>
+      <tr><td><code>GEMINI_API_NO_IMAGE</code></td><td>Gemini API 응답에 이미지 없음.</td></tr>
+      <tr><td><code>VIDEO_PROVIDER_UNSUPPORTED</code></td><td>비디오 생성은 <code>"grok"</code> 또는 <code>"grok-api"</code> 프로바이더가 필요함.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>키 관리</h2>
+  <p>설정 UI 또는 HTTP API로 런타임에 프로바이더 자격증명을 설정합니다.</p>
+  <table>
+    <thead><tr><th>엔드포인트</th><th>메서드</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/keys/status</code></td><td>GET</td><td>모든 프로바이더(openai, xai, gemini, vertex) 키 설정·유효성·마스킹 상태 반환.</td></tr>
+      <tr><td><code>/api/keys/:provider</code></td><td>PUT</td><td>API key 저장. 바디: <code>{"{"}"apiKey": "..."{"}"}</code>. 프로바이더: <code>openai</code>·<code>xai</code>·<code>gemini</code>.</td></tr>
+      <tr><td><code>/api/keys/:provider</code></td><td>DELETE</td><td>설정 파일 기반 API key 제거. env var 기반 키는 제거 불가(<code>ENV_KEY_IMMUTABLE</code>).</td></tr>
+      <tr><td><code>/api/keys/vertex</code></td><td>PUT</td><td>Vertex AI 서비스 계정 JSON 저장. 바디: <code>{"{"}"serviceAccountJson": "..."{"}"}</code>.</td></tr>
+      <tr><td><code>/api/keys/vertex</code></td><td>DELETE</td><td>설정 파일 기반 Vertex 서비스 계정 제거.</td></tr>
+    </tbody>
+  </table>
+  <p>PUT으로 저장된 키는 <code>config.json</code>에 기록되고 런타임에 즉시 반영됩니다(서버 재시작 불필요). 환경 변수(<code>GEMINI_API_KEY</code>, <code>VERTEX_SERVICE_ACCOUNT_JSON</code> 등)는 설정 파일보다 우선하며 API로 변경할 수 없습니다.</p>
+
+  <div class="docs-callout docs-callout-info">
+    전체 엔드포인트 → CLI 매핑, 레퍼런스 이미지 에러 코드, 스타일 시트 라우트는
+    <a href={apiMd}>API.md</a>에 있습니다.
+  </div>
+
+  <div class="docs-pagenav">
+    <a class="prev" href={d('reference/config')}>설정</a>
+    <span class="spacer"></span>
+  </div>
+</DocsLayout>

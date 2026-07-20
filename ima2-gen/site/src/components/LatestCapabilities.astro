@@ -1,0 +1,48 @@
+---
+import Screenshot from './Screenshot.astro';
+import { t, type Lang } from '../i18n/strings';
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const cards = [
+  { label:'latest.video.label', title:'latest.video.h', body:'latest.video.body', src:'screenshots/video-generation-progress.png', alt:'latest.video.alt', aspect:'16/10' },
+  { label:'latest.multimode.label', title:'latest.multimode.h', body:'latest.multimode.body', src:'screenshots/multimode-sequence.png', alt:'latest.multimode.alt', aspect:'2/1' },
+  { label:'latest.canvas.label', title:'latest.canvas.h', body:'latest.canvas.body', src:'screenshots/canvas-mode-cleanup.png', alt:'latest.canvas.alt', aspect:'1/1' },
+  { label:'latest.import.label', title:'latest.import.h', body:'latest.import.body', src:'screenshots/prompt-import-dialog.png', alt:'latest.import.alt', aspect:'5/6' },
+  { label:'latest.skills.label', title:'latest.skills.h', body:'latest.skills.body', src:'screenshots/settings-oauth-generation.png', alt:'latest.skills.alt', aspect:'16/9' },
+];
+---
+
+<section class="std latest-section" id="latest">
+  <div class="frame">
+    <div class="section-tag reveal" style="--i:0">{t(lang, 'latest.tag')}</div>
+    <h2 class="h-section section-h reveal" style="--i:1">{t(lang, 'latest.h.before')}<span class="prism-text">{t(lang, 'latest.h.em')}</span></h2>
+    <p class="section-lede reveal" style="--i:2">{t(lang, 'latest.lede')}</p>
+    <div class="latest-grid">
+      {cards.map((card, i) => (
+        <article class={`latest-card glass-panel foil-hover reveal card-${i + 1}`} style={`--i:${i + 3}`}>
+          <div class="media"><Screenshot src={card.src} alt={t(lang, card.alt)} aspect={card.aspect} /></div>
+          <div class="latest-copy"><div class="label">{t(lang, card.label)}</div><h3>{t(lang, card.title)}</h3><p>{t(lang, card.body)}</p></div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .latest-section { overflow: clip; }
+  .section-lede { max-width: 820px; }
+  .latest-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin-top: 56px; }
+  .latest-card { min-width: 0; overflow: hidden; display: grid; grid-template-columns: 1fr; align-content: start; }
+  .card-1 { grid-column: 1 / -1; grid-template-columns: minmax(0,1.45fr) minmax(280px,.75fr); align-items: center; }
+  .card-2 { }
+  .latest-card :global(.screenshot) { border: 0; border-radius: 0; background: transparent; }
+  .media { min-width: 0; overflow: hidden; max-height: 340px; }
+  .card-1 .media { border-right: 1px solid var(--glass-line); }
+  .latest-copy { padding: 28px; }
+  .label { margin-bottom: 12px; color: var(--text-dim); font: 500 11px/1.2 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+  .label::before { content: ''; display: inline-block; width: 20px; height: 1px; margin: 0 9px 3px 0; background: var(--prism); }
+  h3 { margin: 0 0 12px; font: 600 25px/1.08 var(--font-display); letter-spacing: 0; text-wrap: balance; }
+  p { margin: 0; color: var(--text-dim); font-size: 15px; line-height: 1.6; text-wrap: pretty; }
+  @media (max-width: 900px) { .card-1 { grid-template-columns: 1fr; } .card-1 .media { border-right: 0; border-bottom: 1px solid var(--glass-line); } }
+  @media (max-width: 680px) { .latest-grid { grid-template-columns: 1fr; margin-top: 40px; } .card-1, .card-2 { grid-column: auto; grid-row: auto; } .latest-copy { padding: 22px; } h3 { font-size: 22px; } }
+</style>

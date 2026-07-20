@@ -1,0 +1,184 @@
+.settings-workspace .settings-row {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.settings-workspace .settings-row__control {
+  justify-content: stretch;
+}
+
+.settings-field {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-field__options {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-radio-option {
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--control-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.settings-radio-option:hover {
+  border-color: var(--border-strong);
+  background: var(--control-hover);
+}
+
+.settings-radio-option:has(input:checked) {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--surface-2) 72%, var(--accent-soft));
+  box-shadow: inset 0 0 0 1px var(--hairline-soft);
+}
+
+.settings-radio-option input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: inherit;
+}
+
+.settings-radio-option input:checked {
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle at center, var(--accent) 0 38%, transparent 41%),
+    var(--surface);
+}
+
+.settings-radio-option input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.settings-radio-option__text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  line-height: 1.25;
+}
+
+.settings-radio-option__text strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+.settings-radio-option__desc {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 820px) {
+  .settings-workspace .settings-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-workspace .settings-row__control {
+    justify-content: flex-start;
+  }
+}
+
+/* Phase 025 — provider cards + mono status chips (class contract frozen at
+   audit: .provider-card / .provider-card__head / .provider-chip--ok|warn|err). */
+.provider-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.provider-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.provider-card__head h4 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.provider-card__head .provider-chip {
+  margin-left: auto;
+}
+.provider-card__brand {
+  display: inline-flex;
+  color: var(--text-dim);
+  flex: none;
+}
+.provider-card__eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.provider-card p {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.provider-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-soft);
+  background: var(--control-bg);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.provider-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+.provider-chip--ok {
+  color: var(--text);
+}
+.provider-chip--ok::before {
+  background: var(--green);
+}
+.provider-chip--warn::before {
+  background: var(--amber);
+}
+.provider-chip--err::before {
+  background: var(--red);
+}
+
+/* Settings-scoped kit sizing (worker test contract: .settings-row__control .ctl-select) */
+.settings-row__control .ctl-select {
+  min-width: 220px;
+}

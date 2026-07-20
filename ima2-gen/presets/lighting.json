@@ -1,0 +1,12 @@
+[
+  {"id":"golden-hour","name":"Golden Hour","category":"lighting","promptFragment":"warm low-angle golden-hour sunlight, long soft-edged shadows and luminous atmospheric haze","modes":["both"]},
+  {"id":"blue-hour","name":"Blue Hour","category":"lighting","promptFragment":"cool blue-hour ambient light with balanced practical lights and a deep cobalt sky","modes":["both"]},
+  {"id":"studio-softbox","name":"Studio Softbox","category":"lighting","promptFragment":"large studio softbox key light with smooth wrap, controlled fill and clean catchlights","modes":["both"]},
+  {"id":"hard-rim","name":"Hard Rim","category":"lighting","promptFragment":"hard back rim light carving a bright edge around the subject against a darker background","modes":["both"]},
+  {"id":"volumetric-fog","name":"Volumetric Fog","category":"lighting","promptFragment":"directional volumetric light shafts visible through fine atmospheric fog with layered depth","modes":["both"]},
+  {"id":"neon-glow","name":"Neon Glow","category":"lighting","promptFragment":"saturated neon illumination with colored spill, glossy reflections and luminous edge bloom","modes":["both"]},
+  {"id":"chiaroscuro","name":"Chiaroscuro","category":"lighting","promptFragment":"dramatic chiaroscuro lighting with a sculpted key, deep controlled shadow and painterly contrast","modes":["both"]},
+  {"id":"overcast-diffuse","name":"Overcast Diffuse","category":"lighting","promptFragment":"broad overcast daylight, exceptionally soft diffuse shadows and even natural skin tones","modes":["both"]},
+  {"id":"candlelight","name":"Candlelight","category":"lighting","promptFragment":"intimate flickering candlelight with warm falloff, soft amber highlights and deep surrounding shadow","modes":["both"]},
+  {"id":"moonlight","name":"Moonlight","category":"lighting","promptFragment":"cool directional moonlight with silver-blue highlights, subdued fill and nocturnal contrast","modes":["both"]}
+]

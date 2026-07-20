@@ -1,0 +1,101 @@
+---
+import DocsLayout from '../../../layouts/DocsLayout.astro';
+import { docsPath } from '../../../i18n/docs';
+
+const d = (slug: string) => docsPath(import.meta.env.BASE_URL, 'en', slug);
+---
+
+<DocsLayout
+  lang="en"
+  active="concepts/modes"
+  title="Generation Modes"
+  description="When to use Classic, Node, Multimode, and Canvas modes in ima2-gen, plus the prompt library."
+>
+  <p class="docs-eyebrow">Concepts</p>
+  <h1>Generation Modes</h1>
+  <p class="lead">ima2-gen gives you five ways to make and refine an image. Pick by how you iterate.</p>
+
+  <h2>Classic</h2>
+  <p>
+    One prompt, one strong frame. Write a prompt, attach up to five references, pick model, quality,
+    size, format, and moderation, then generate. Copy, download, continue from the result, or send
+    it into Canvas Mode.
+  </p>
+
+  <h2>Node</h2>
+  <p>
+    One frame, ten directions. Lock a parent image and fan out children — palette, framing, copy.
+    Each node keeps its own prompt and result; root nodes attach local references while child nodes
+    use the parent image as their source. Completed jobs match back to nodes by request ID, so
+    reloads and graph-version conflicts can recover finished results.
+  </p>
+
+  <h2>Multimode</h2>
+  <p>
+    Several candidates from one prompt. Run a sequence from Classic mode, watch each slot progress,
+    cancel when needed, and continue from the strongest result. From the CLI this streams
+    <code>phase</code>, <code>partial</code>, and <code>image</code> events.
+  </p>
+
+  <h2>Canvas Mode</h2>
+  <p>
+    Clean up the winning frame. Pan a zoomed image separately from selection, annotate target areas,
+    clean backgrounds with a previewed mask, and export transparent (alpha) or matte-backed
+    versions. Saved canvas versions stay hidden from the gallery but can be reused as the next
+    reference.
+  </p>
+
+  <h2>Video</h2>
+  <p>
+    Generate short videos from text, a single image, or multiple reference images via Grok video
+    models (<code>grok-imagine-video</code>, canonical <code>grok-imagine-video-1.5</code>;
+    preview is an accepted alias). Mode is auto-detected: 0 refs → text-to-video, 1 ref →
+    image-to-video, 2–7 refs → reference-to-video (max 10s). Controls include duration
+    (1–15s), resolution (480p, 720p, and 1080p for 1.5 single-image/frame I2V), and aspect ratio. The
+    CLI streams SSE progress events; the UI shows planning → generating → X% progress in the
+    in-flight queue.
+  </p>
+  <p>
+    A Grok planner (default <code>grok-4.3</code>, overridable in video settings or via
+    <code>--planner-model</code>) rewrites prompts with web-search context before generation.
+    For multi-character scenes, planners identify speakers by visual appearance — clothing,
+    physique, position, and props — rather than names, so dialogue attribution stays consistent
+    across clips.
+  </p>
+  <p>
+    Video results expose <strong>First</strong>, <strong>Mid</strong>, and <strong>Last</strong>
+    frame buttons to extract and copy keyframes for storyboard chaining or reference attachment.
+  </p>
+
+  <h2>Storyboard</h2>
+  <p>
+    Toggle storyboard mode in the composer to maintain character and scene continuity across
+    sequential frames. Image keyframes are composed for video production; video clips inherit
+    character and environment lock rules. Works with both image and video generation. From the CLI,
+    pass <code>--storyboard</code> on <code>ima2 video</code> (and <code>ima2 video continue</code>).
+  </p>
+
+  <h2>Agent</h2>
+  <p>
+    Describe what you want and let the agent iterate. Agent Mode is a conversational image workspace:
+    each session keeps a current image, a turn history, style/subject locks, and a durable queue, so
+    parallel and auto-generation work survives reconnects. It supports slash commands and
+    <code>/question</code>, and runs in the web UI (there is no <code>ima2 agent</code> CLI command).
+    With <code>provider: "grok"</code>, Agent Mode uses the same search + planner + xAI Images API
+    path as Classic and Node.
+  </p>
+
+  <h2>Prompt library &amp; imports</h2>
+  <p>
+    Fill the prompt library from local files, GitHub folders, curated sources, and GPT-image hint
+    packs. Imported prompts are indexed locally so search and ranking work without re-importing
+    every session. See the
+    <a href="https://github.com/lidge-jun/ima2-gen/blob/main/docs/PROMPT_STUDIO.md">Prompt Studio manual</a>
+    for control-by-control detail.
+  </p>
+
+  <div class="docs-pagenav">
+    <a class="prev" href={d('concepts/architecture')}>Architecture</a>
+    <a class="next" href={d('concepts/providers')}>Providers &amp; Models</a>
+  </div>
+</DocsLayout>

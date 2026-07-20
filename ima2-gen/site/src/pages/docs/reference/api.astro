@@ -1,0 +1,196 @@
+---
+import DocsLayout from '../../../layouts/DocsLayout.astro';
+import { docsPath } from '../../../i18n/docs';
+
+const d = (slug: string) => docsPath(import.meta.env.BASE_URL, 'en', slug);
+const apiMd = 'https://github.com/lidge-jun/ima2-gen/blob/main/docs/API.md';
+
+// Rendered as a literal string so the JSON braces are not parsed as Astro expressions.
+const genBody = `{
+  "prompt": "a shiba in space",
+  "quality": "medium",
+  "size": "1024x1024",
+  "format": "png",
+  "moderation": "low",
+  "provider": "oauth",
+  "model": "gpt-5.4",
+  "references": [],
+  "requestId": "optional-client-id"
+}`;
+---
+
+<DocsLayout
+  lang="en"
+  active="reference/api"
+  title="Server API"
+  description="Endpoint groups for the local ima2-gen server: generation, history, sessions and graphs, storage, jobs, and common error codes."
+>
+  <p class="docs-eyebrow">Reference</p>
+  <h1>Server API</h1>
+  <p class="lead">
+    The CLI is a thin shell over the local server — most <code>/api/*</code> routes have a CLI
+    wrapper. Agent Mode is web-UI only; prompt builder is also available through
+    <code>ima2 prompt build</code>. This page maps the endpoint groups; for full request and
+    response shapes, see <a href={apiMd}>API.md</a>.
+  </p>
+
+  <h2>Base URL</h2>
+  <p>
+    All endpoints are served locally. The default base is <code>http://localhost:3333</code>; the
+    actual bound port is advertised in <code>~/.ima2/server.json</code> (prefer
+    <code>backend.url</code>).
+  </p>
+
+  <h2>Generation</h2>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST /api/generate</code></td><td>Text-to-image and reference-guided root generation.</td></tr>
+      <tr><td><code>POST /api/edit</code></td><td>Image edit / image-to-image generation.</td></tr>
+      <tr><td><code>POST /api/generate/multimode</code></td><td>Multimode batch. Supports async POST (202) + SSE multiplexing.</td></tr>
+      <tr><td><code>POST /api/node/generate</code></td><td>Node-mode generation and child edits. Supports async POST (202) + SSE multiplexing.</td></tr>
+      <tr><td><code>GET /api/node/:nodeId</code></td><td>Fetch stored node metadata and asset URL.</td></tr>
+      <tr><td><code>GET /api/events</code></td><td>Persistent SSE multiplex channel for all async generation progress.</td></tr>
+      <tr><td><code>POST /api/video/generate</code></td><td>Video generation via Grok (T2V/I2V/Ref2V). Supports async POST (202) + SSE multiplexing.</td></tr>
+      <tr><td><code>POST /api/video/edit</code></td><td>Video-to-video edit via Grok; saves a generated MP4 artifact.</td></tr>
+      <tr><td><code>POST /api/video/extend</code></td><td>Extend a generated or remote MP4 from its last frame.</td></tr>
+      <tr><td><code>GET /api/video/frame</code></td><td>Extract a PNG frame from a generated MP4.</td></tr>
+      <tr><td><code>POST /api/video/analyze</code></td><td>Analyze first/last frames from a generated MP4 with Grok 4.3 vision.</td></tr>
+    </tbody>
+  </table>
+  <h4>POST /api/generate — request body</h4>
+  <pre><code>{genBody}</code></pre>
+  <p>
+    Quality: low, medium, high. Moderation: auto, low. Provider: auto, oauth, api, grok, grok-api,
+    agy, gemini-api. Recommended OpenAI model <code>gpt-5.4</code>; app default
+    <code>gpt-5.4-mini</code>. Grok image models: <code>grok-imagine-image</code> and
+    <code>grok-imagine-image-quality</code>. Gemini API models: <code>nano-banana-2</code>
+    (default) and <code>nano-banana-pro</code>. The web UI uses <code>GET /api/events</code>
+    (SSE multiplexing) for all generation progress: POST routes accept
+    <code>{"{ async: true, requestId }"}</code> and respond <code>202</code>;
+    events (<code>phase</code>, <code>partial</code>, <code>done</code>, <code>error</code>)
+    are multiplexed through the shared event bus. CLI clients that send
+    <code>Accept: text/event-stream</code> still receive per-request SSE.
+  </p>
+  <div class="docs-callout docs-callout-info">
+    <strong>Video generation.</strong> <code>POST /api/video/generate</code> (SSE) generates videos
+    via Grok. Models: <code>grok-imagine-video</code> and canonical
+    <code>grok-imagine-video-1.5</code>; <code>grok-imagine-video-1.5-preview</code> is accepted
+    only as a compatibility alias. Modes: text-to-video, image-to-video, reference-to-video
+    (2–7 refs). <code>1080p</code> is available only for 1.5 image-to-video with one
+    image/frame source; Ref2V, V2V edit, and extension remain base-model paths. CLI:
+    <code>ima2 video</code>. Extended CLI/API surfaces include <code>ima2 video edit</code>,
+    <code>ima2 video extend</code>, <code>ima2 video frame</code>, and <code>ima2 video analyze</code>.
+    Request body accepts <code>plannerModel</code> (default <code>grok-4.3</code>) and
+    <code>storyboard</code> for sequential clip continuity. Frame/analyze accept generated MP4 files;
+    analyze rejects arbitrary remote URLs.
+  </div>
+
+  <h2>History</h2>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/history</code></td><td>List generated assets; <code>?groupBy=session</code> groups by session title.</td></tr>
+      <tr><td><code>DELETE /api/history/:filename</code></td><td>Tombstone a generated asset.</td></tr>
+      <tr><td><code>POST /api/history/:filename/restore</code></td><td>Restore a recently deleted asset.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Sessions &amp; graphs</h2>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/sessions</code> · <code>POST /api/sessions</code></td><td>List or create graph sessions.</td></tr>
+      <tr><td><code>GET /api/sessions/:id</code></td><td>Load a session and its graph.</td></tr>
+      <tr><td><code>PATCH /api/sessions/:id</code> · <code>DELETE /api/sessions/:id</code></td><td>Rename or delete a session.</td></tr>
+      <tr><td><code>PUT /api/sessions/:id/graph</code></td><td>Save a graph snapshot.</td></tr>
+    </tbody>
+  </table>
+  <div class="docs-callout docs-callout-warn">
+    <strong>Optimistic concurrency.</strong> Graph saves require an <code>If-Match</code> header with
+    the current version. A stale version returns <code>GRAPH_VERSION_CONFLICT</code> plus the current
+    version — it only means you saved against a stale snapshot, not that another tab changed the graph.
+  </div>
+
+  <h2>Agent Mode &amp; discovery</h2>
+  <p>
+    Agent Mode is a conversational image workspace (sessions, turns, and a durable per-session queue).
+    These routes are always registered but have <strong>no CLI wrapper</strong> — drive Agent Mode
+    from the web UI.
+  </p>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/capabilities</code></td><td>Agent-facing discovery: supported models, valid values, limits, version (<code>ima2 capabilities</code>).</td></tr>
+      <tr><td><code>GET · POST /api/agent/sessions</code></td><td>List or create agent sessions.</td></tr>
+      <tr><td><code>GET · PATCH · DELETE /api/agent/sessions/:id</code></td><td>Load, update, or delete a session.</td></tr>
+      <tr><td><code>POST /api/agent/sessions/:id/turns</code></td><td>Run an agent turn; supports slash commands and <code>/question</code>.</td></tr>
+      <tr><td><code>GET · POST /api/agent/sessions/:id/queue</code></td><td>Inspect or enqueue durable queue work (<code>/api/agent/queue/:itemId/cancel</code> · <code>retry</code> manage items).</td></tr>
+      <tr><td><code>POST /api/prompt-builder/chat</code></td><td>Prompt-builder assistant (<code>ima2 prompt build</code>).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Health, storage &amp; jobs</h2>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/health</code></td><td>Health check (<code>ima2 ping</code>).</td></tr>
+      <tr><td><code>GET /api/providers</code></td><td>Provider availability and runtime ports (<code>ima2 providers</code>).</td></tr>
+      <tr><td><code>GET /api/oauth/status</code></td><td>OAuth proxy status (<code>ima2 oauth status</code>).</td></tr>
+      <tr><td><code>GET /api/grok/status</code></td><td>Bundled progrok status and xAI model probe (<code>ima2 grok status</code>).</td></tr>
+      <tr><td><code>GET /api/storage/status</code></td><td>Storage inspection.</td></tr>
+      <tr><td><code>POST /api/storage/open-generated-dir</code></td><td>Open the generated directory in the OS file manager.</td></tr>
+      <tr><td><code>GET /api/inflight</code> · <code>DELETE /api/inflight/:id</code></td><td>List or force-remove in-flight jobs.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Keys &amp; auth</h2>
+  <table>
+    <thead><tr><th>Endpoint</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/keys/status</code></td><td>Key status for all providers (openai, xai, gemini, vertex) — masked key and source.</td></tr>
+      <tr><td><code>PUT /api/keys/:provider</code></td><td>Save and validate an API key for openai, xai, or gemini. Validates against the provider API before saving to config.</td></tr>
+      <tr><td><code>DELETE /api/keys/:provider</code></td><td>Remove a config-layer API key (env-sourced keys are immutable).</td></tr>
+      <tr><td><code>PUT /api/keys/vertex</code></td><td>Save and validate a Google Cloud service-account JSON for Vertex AI auth. Sets <code>geminiAuthMode: "vertex"</code> in config.</td></tr>
+      <tr><td><code>DELETE /api/keys/vertex</code></td><td>Remove the Vertex AI service-account from config.</td></tr>
+      <tr><td><code>GET /api/quota</code></td><td>Usage bars for Codex (GPT OAuth) and Grok. Grok result includes <code>billing.usedUsd</code> / <code>billing.limitUsd</code> for the dollar display.</td></tr>
+      <tr><td><code>POST /api/auth/switch</code></td><td>Start a device-code auth flow for <code>grok</code> or <code>codex</code>. Returns <code>sessionId</code>, <code>userCode</code>, and <code>verificationUrl</code>.</td></tr>
+      <tr><td><code>GET /api/auth/switch/:sessionId</code></td><td>Poll auth flow status: <code>pending</code>, <code>complete</code>, <code>error</code>, or <code>expired</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Common error codes</h2>
+  <table>
+    <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>API_KEY_REQUIRED</code></td><td>API path requested without a configured key.</td></tr>
+      <tr><td><code>INVALID_IMAGE_MODEL</code></td><td>Model name is unknown or unsupported.</td></tr>
+      <tr><td><code>IMAGE_MODEL_UNSUPPORTED</code></td><td>Model exists but cannot use image generation.</td></tr>
+      <tr><td><code>SAFETY_REFUSAL</code> · <code>MODERATION_REFUSED</code></td><td>Upstream safety / moderation refusal.</td></tr>
+      <tr><td><code>AUTH_CHATGPT_EXPIRED</code></td><td>Codex/ChatGPT OAuth session expired.</td></tr>
+      <tr><td><code>AUTH_API_KEY_INVALID</code></td><td>API key is invalid, revoked, or out of quota.</td></tr>
+      <tr><td><code>NETWORK_FAILED</code></td><td>Network, proxy, VPN, or firewall failure.</td></tr>
+      <tr><td><code>OAUTH_UNAVAILABLE</code></td><td>Local OAuth proxy is not available.</td></tr>
+      <tr><td><code>GRAPH_VERSION_CONFLICT</code></td><td>Save made against a stale graph version.</td></tr>
+      <tr><td><code>NODE_NOT_FOUND</code></td><td>Node metadata was not found.</td></tr>
+      <tr><td><code>GROK_REF_TOO_MANY</code></td><td>Grok request included more than three total input images.</td></tr>
+      <tr><td><code>GROK_MASK_UNSUPPORTED</code></td><td>Grok edit was requested with a mask.</td></tr>
+      <tr><td><code>INVALID_GROK_IMAGE_MODEL</code></td><td>Grok request used an unsupported image model.</td></tr>
+      <tr><td><code>GROK_RATE_LIMITED</code> · <code>GROK_AUTH_FAILED</code></td><td>xAI rate-limit or auth failure through progrok.</td></tr>
+      <tr><td><code>GROK_SEARCH_TIMEOUT</code> · <code>GROK_PLANNER_TIMEOUT</code> · <code>GROK_IMAGE_TIMEOUT</code></td><td>One Grok phase exceeded its timeout budget.</td></tr>
+      <tr><td><code>GEMINI_API_KEY_MISSING</code></td><td>Gemini API provider requested without a configured API key or Vertex AI credentials.</td></tr>
+      <tr><td><code>INVALID_GEMINI_API_IMAGE_MODEL</code></td><td>Gemini API model is not one of the valid values (nano-banana-2, nano-banana-pro).</td></tr>
+      <tr><td><code>GENERATION_TIMEOUT</code></td><td>Gemini API generation timed out (120s limit).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="docs-callout docs-callout-info">
+    The full endpoint → CLI mapping, reference-image error codes, and style-sheet routes are in
+    <a href={apiMd}>API.md</a>.
+  </div>
+
+  <div class="docs-pagenav">
+    <a class="prev" href={d('reference/config')}>Configuration</a>
+    <span class="spacer"></span>
+  </div>
+</DocsLayout>
