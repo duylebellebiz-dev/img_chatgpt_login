@@ -1,0 +1,3 @@
+[submodule "ima2-gen"]
+	path = ima2-gen
+	url = https://github.com/lidge-jun/ima2-gen.git
