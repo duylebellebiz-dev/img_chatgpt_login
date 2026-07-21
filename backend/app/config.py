@@ -61,6 +61,16 @@ class Settings(BaseSettings):
     # below quality_pass_threshold so this never fires on a merely mediocre
     # image, only a clearly broken one.
     quality_hard_failure_threshold: int = 30
+    # pose_fidelity and nail_accuracy are the two criteria that actually
+    # measure "did the output keep the reference images unchanged" — the
+    # other five (lighting/background/realism/anatomy/marketing_quality)
+    # score general photo quality and say nothing about reference fidelity.
+    # Averaging all seven equally lets a design that got reinterpreted by the
+    # image provider (low nail_accuracy) get diluted by high scores on the
+    # other six and still clear quality_pass_threshold on the overall
+    # average. These two must independently clear this floor too, or the
+    # attempt fails regardless of its overall score.
+    quality_fidelity_floor: int = 70
 
     batch_min_images: int = 1
     batch_max_images: int = 100

@@ -11,6 +11,10 @@ def _settings(**overrides) -> Settings:
         "anthropic_api_key": "",
         "image_provider": "mock",
         "near_duplicate_max_retries": 2,
+        # 0 so tests that aren't about the fidelity floor (most of them,
+        # asserting on quality_pass_threshold/retry-budget behavior) aren't
+        # affected by mock_score's random-ish per-criterion values.
+        "quality_fidelity_floor": 0,
     }
     defaults.update(overrides)
     return Settings(**defaults)
@@ -275,6 +279,92 @@ def test_ordinary_low_score_does_not_retry_when_quality_max_retries_is_zero(tmp_
 
     assert result.attempt == 1
     assert result.passed is False
+
+
+def test_fidelity_floor_fails_a_high_overall_score_with_poor_nail_accuracy(tmp_path, tiny_png_bytes, monkeypatch):
+    """Regression guard for the actual reported bug: the image provider
+    reinterprets the design reference instead of copying it, but the other
+    six criteria (lighting/background/realism/anatomy/pose_fidelity/
+    marketing_quality) still score well, so the overall average clears
+    quality_pass_threshold even though the design was never actually
+    preserved. nail_accuracy must independently clear quality_fidelity_floor
+    or the attempt is not passed, regardless of the overall average."""
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(tiny_png_bytes)
+    pose.write_bytes(tiny_png_bytes)
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=80, quality_max_retries=0, quality_fidelity_floor=70)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    monkeypatch.setattr(
+        quality,
+        "score_image",
+        lambda path, design_path=None, pose_path=None: (
+            84.3,
+            {"anatomy": 95, "pose_fidelity": 95, "nail_accuracy": 50, "lighting": 90, "background": 90,
+             "realism": 90, "marketing_quality": 90},
+        ),
+    )
+
+    result = quality.generate_with_quality_gate(image_service, design, pose, "base prompt", out, variation=1)
+
+    assert result.overall >= 80  # would have passed under the old overall-only rule
+    assert result.passed is False
+
+
+def test_fidelity_floor_fails_a_high_overall_score_with_poor_pose_fidelity(tmp_path, tiny_png_bytes, monkeypatch):
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(tiny_png_bytes)
+    pose.write_bytes(tiny_png_bytes)
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=80, quality_max_retries=0, quality_fidelity_floor=70)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    monkeypatch.setattr(
+        quality,
+        "score_image",
+        lambda path, design_path=None, pose_path=None: (
+            84.3,
+            {"anatomy": 95, "pose_fidelity": 50, "nail_accuracy": 95, "lighting": 90, "background": 90,
+             "realism": 90, "marketing_quality": 90},
+        ),
+    )
+
+    result = quality.generate_with_quality_gate(image_service, design, pose, "base prompt", out, variation=1)
+
+    assert result.passed is False
+
+
+def test_fidelity_floor_does_not_block_a_pass_when_both_criteria_clear_it(tmp_path, tiny_png_bytes, monkeypatch):
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(tiny_png_bytes)
+    pose.write_bytes(tiny_png_bytes)
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=80, quality_max_retries=0, quality_fidelity_floor=70)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    monkeypatch.setattr(
+        quality,
+        "score_image",
+        lambda path, design_path=None, pose_path=None: (
+            85.0,
+            {"anatomy": 85, "pose_fidelity": 80, "nail_accuracy": 80, "lighting": 85, "background": 85,
+             "realism": 90, "marketing_quality": 90},
+        ),
+    )
+
+    result = quality.generate_with_quality_gate(image_service, design, pose, "base prompt", out, variation=1)
+
+    assert result.passed is True
 
 
 def test_build_retry_feedback_is_empty_when_nothing_is_weak():

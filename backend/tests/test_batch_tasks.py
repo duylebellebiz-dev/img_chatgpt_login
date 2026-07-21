@@ -92,7 +92,9 @@ def test_reachable_threshold_marks_passed(db_session, tiny_png_bytes, tmp_path, 
     from app.models.db_models import GeneratedImage
     from app.tasks.batch_tasks import process_batch_job
 
-    settings_override(quality_pass_threshold=0, quality_max_retries=3)  # always passes on attempt 1
+    settings_override(
+        quality_pass_threshold=0, quality_max_retries=3, quality_fidelity_floor=0
+    )  # always passes on attempt 1
     job = _make_job(db_session, tiny_png_bytes, tmp_path, num_images=2)
 
     process_batch_job(job.id)

@@ -29,6 +29,10 @@ credentials.*.json
 .codexclaw/
 .git-backups/
 
+# Local ngrok binary (Windows-only download) — install the ngrok CLI instead
+# so the `npm run tunnel` script below works the same on every OS.
+/ngrok.exe
+
 # ---------------------------------------------------------------------------
 # Dependencies and virtual environments
 # ---------------------------------------------------------------------------

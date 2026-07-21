@@ -42,6 +42,29 @@ CHATGPT_GENERATION_TIMEOUT_SECONDS=400
 
 Use `IMAGE_PROVIDER=mock` for offline development and automated tests.
 
+## Facebook/Instagram OAuth tunnel (ngrok)
+
+The frontend dev server only accepts requests from the reserved domain
+`resurrect-unseated-prissy.ngrok-free.dev` (see `allowedHosts` in
+`frontend/vite.config.js`), so every machine — Windows or macOS — must expose
+port 5173 through *that same* domain. Nothing in the code needs to change per
+machine:
+
+1. Install the ngrok CLI (one-time, per machine):
+   - macOS: `brew install ngrok/ngrok/ngrok`
+   - Windows: https://ngrok.com/download (or keep using the bundled `ngrok.exe`)
+2. Authenticate with the shared account (one-time, per machine): ask for the
+   authtoken and run `ngrok config add-authtoken <TOKEN>`.
+3. From `frontend/`, run:
+   ```
+   npm run tunnel
+   ```
+   This always opens `https://resurrect-unseated-prissy.ngrok-free.dev`, so no
+   one needs to edit `vite.config.js` or pick their own domain.
+
+Keep the authtoken out of chat/commits — share it directly (password manager,
+1:1 message), not through this repo.
+
 ## Security and deployment
 
 This OAuth route is intended for a trusted local workstation. Do not expose

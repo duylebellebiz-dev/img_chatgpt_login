@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 
 _CRITERIA = ["anatomy", "pose_fidelity", "nail_accuracy", "lighting", "background", "realism", "marketing_quality"]
 
+# The two criteria that measure reference fidelity specifically (as opposed
+# to general photo quality) — see quality_fidelity_floor in config.py for why
+# these need their own floor independent of the overall average.
+_FIDELITY_CRITERIA = ["pose_fidelity", "nail_accuracy"]
+
 # Sent alongside the two reference images (see score_image). Explicitly asks
 # the judge to compare the candidate against both references, rather than
 # scoring it in isolation — a single-image judge has no ground truth to
@@ -291,7 +296,22 @@ class QualityService:
                 continue
 
             overall, breakdown = self.score_image(generated_path, design_path, pose_path)
-            passed = overall >= self.settings.quality_pass_threshold
+            failed_fidelity = [
+                c for c in _FIDELITY_CRITERIA if breakdown.get(c, 0) < self.settings.quality_fidelity_floor
+            ]
+            if failed_fidelity:
+                logger.warning(
+                    "generate_image attempt %d for variation %d scored %s below "
+                    "quality_fidelity_floor (%d) despite an overall score of %.1f — "
+                    "failing this attempt so a design/pose mismatch can't be diluted "
+                    "by high scores on unrelated criteria.",
+                    attempt,
+                    variation,
+                    {c: breakdown.get(c) for c in failed_fidelity},
+                    self.settings.quality_fidelity_floor,
+                    overall,
+                )
+            passed = overall >= self.settings.quality_pass_threshold and not failed_fidelity
             result = QualityResult(
                 attempt=attempt,
                 passed=passed,
