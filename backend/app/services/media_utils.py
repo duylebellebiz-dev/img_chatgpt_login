@@ -8,7 +8,7 @@ from PIL import Image
 # detail. Applied to every in-place re-save below; harmless no-ops for PNG output.
 _JPEG_SAVE_KWARGS = {"quality": 95, "subsampling": 0}
 
-# Long-edge cap applied only to images we upload to ChatGPT/Claude (never to
+# Long-edge cap applied only to images we upload to Gemini/Claude (never to
 # files served to users). Matches Anthropic's documented internal resize
 # threshold — Claude downscales anything larger than this before it ever
 # reasons about the image, so sending more than this buys nothing but extra
@@ -122,7 +122,7 @@ def is_near_duplicate_image(image_path: Path, other_path: Path, max_mean_diff: f
 
 
 def prepare_image_for_api(path: Path) -> tuple[bytes, str]:
-    """Returns (bytes, mime_type) to upload to ChatGPT/Claude for a reference or
+    """Returns (bytes, mime_type) to upload to Gemini/Claude for a reference or
     candidate image. Images already at or under _API_UPLOAD_MAX_DIMENSION are
     returned untouched (no re-encoding cost or generational quality loss);
     larger ones are downscaled to fit on the long edge and re-encoded as a

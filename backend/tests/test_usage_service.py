@@ -41,17 +41,15 @@ def test_record_anthropic_usage_computes_cost_from_configured_pricing(db_session
     assert record.estimated_cost_usd == pytest.approx(18.0)
 
 
-def test_record_chatgpt_oauth_usage_tracks_tokens_without_api_cost(db_session):
-    usage_service.record_chatgpt_oauth_usage(
-        "generate_image", "gpt-5.4-mini", {"input_tokens": 100, "output_tokens": 200}, 1
-    )
+def test_record_gemini_oauth_usage_tracks_images_without_api_cost(db_session):
+    usage_service.record_gemini_oauth_usage("generate_image", "nano-banana-2", 1)
 
     from app.models.db_models import ApiUsageRecord
 
     record = db_session.query(ApiUsageRecord).one()
-    assert record.provider == "chatgpt_oauth"
-    assert record.input_tokens == 100
-    assert record.output_tokens == 200
+    assert record.provider == "gemini_oauth"
+    assert record.input_tokens is None
+    assert record.output_tokens is None
     assert record.image_count == 1
     assert record.estimated_cost_usd == 0.0
 
@@ -78,9 +76,7 @@ def test_get_monthly_summary_aggregates_across_providers(db_session):
         SimpleNamespace(usage=SimpleNamespace(input_tokens=1_000_000, output_tokens=0)),
         _settings(),
     )
-    usage_service.record_chatgpt_oauth_usage(
-        "generate_image", "gpt-5.4-mini", {"input_tokens": 100, "output_tokens": 200}, 2
-    )
+    usage_service.record_gemini_oauth_usage("generate_image", "nano-banana-2", 2)
 
     from datetime import datetime, timezone
 
@@ -89,5 +85,5 @@ def test_get_monthly_summary_aggregates_across_providers(db_session):
 
     assert summary["total_requests"] == 2
     assert summary["anthropic_cost_usd"] == pytest.approx(3.0)
-    assert summary["chatgpt_oauth_requests"] == 2
+    assert summary["gemini_oauth_requests"] == 2
     assert summary["total_cost_usd"] == pytest.approx(3.0)

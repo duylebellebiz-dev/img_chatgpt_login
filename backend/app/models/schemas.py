@@ -313,7 +313,7 @@ class UsageSummaryOut(BaseModel):
     total_requests: int
     total_cost_usd: float
     anthropic_cost_usd: float
-    chatgpt_oauth_requests: int
+    gemini_oauth_requests: int
     budget_usd: float = 0.0
 
 

@@ -64,8 +64,8 @@ export default function UsageMeter() {
           <p className="text-[11px] text-neutral-500">Claude</p>
         </div>
         <div className="rounded-lg bg-neutral-50 p-2.5">
-          <p className="text-sm font-semibold text-neutral-900">{summary.chatgpt_oauth_requests}</p>
-          <p className="text-[11px] text-neutral-500">ChatGPT OAuth images</p>
+          <p className="text-sm font-semibold text-neutral-900">{summary.gemini_oauth_requests}</p>
+          <p className="text-[11px] text-neutral-500">Gemini OAuth images</p>
         </div>
       </div>
     </div>

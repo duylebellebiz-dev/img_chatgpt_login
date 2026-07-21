@@ -12,15 +12,18 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-4-5"
 
-    # The local ima2-gen OAuth proxy reuses a file-backed Codex/ChatGPT login.
+    # Gemini image generation uses the locally authenticated Antigravity CLI.
     # Use "mock" for deterministic placeholders in tests or offline work.
-    image_provider: str = "chatgpt_oauth"
-    chatgpt_oauth_proxy_url: str = "http://127.0.0.1:10531"
-    chatgpt_image_model: str = "gpt-5.4-mini"
-    chatgpt_image_quality: str = "high"
-    chatgpt_image_moderation: str = "low"
-    chatgpt_reasoning_effort: str = "none"
-    chatgpt_generation_timeout_seconds: float = 400.0
+    image_provider: str = "agy"
+    agy_bin: str = ""
+    agy_image_model: str = "nano-banana-2"
+    # Orchestrator model the Antigravity CLI itself runs as (see `agy models`
+    # for the full list). This is the agent that reads the prompt and calls
+    # the generate_image tool — a stronger model here can follow the
+    # compositing instructions more precisely, but it does not change which
+    # underlying model actually renders the pixels.
+    agy_model: str = "gemini-3.1-pro-high"
+    agy_generation_timeout_seconds: float = 400.0
 
     storage_root: str = "./storage"
 
@@ -75,7 +78,7 @@ class Settings(BaseSettings):
     batch_min_images: int = 1
     batch_max_images: int = 100
     # How many images in a batch job to generate concurrently. Generation is
-    # I/O-bound (ChatGPT + Claude network round trips), so running several in
+    # I/O-bound (Gemini + Claude network round trips), so running several in
     # parallel cuts wall-clock time for a batch without changing per-image cost.
     batch_concurrency: int = 4
 
@@ -146,8 +149,8 @@ class Settings(BaseSettings):
         return bool(self.anthropic_api_key)
 
     @property
-    def uses_chatgpt_oauth(self) -> bool:
-        return self.image_provider.strip().lower() == "chatgpt_oauth"
+    def uses_agy(self) -> bool:
+        return self.image_provider.strip().lower() == "agy"
 
     @property
     def uses_mock_images(self) -> bool:

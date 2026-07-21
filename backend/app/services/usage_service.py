@@ -1,4 +1,4 @@
-"""Records usage for real Claude and ChatGPT OAuth calls, for a
+"""Records usage for real Claude and Gemini OAuth calls, for a
 monthly cost dashboard. Deliberately best-effort: a failure here must never
 break the actual generation pipeline, and callers may run inside a
 ThreadPoolExecutor worker thread (see batch_tasks.py), so each record_*
@@ -48,28 +48,24 @@ def record_anthropic_usage(operation: str, model: str, response, settings: Setti
         db.close()
 
 
-def record_chatgpt_oauth_usage(
-    operation: str, model: str, usage: dict | None, image_count: int = 1
-) -> None:
+def record_gemini_oauth_usage(operation: str, model: str, image_count: int = 1) -> None:
     db = SessionLocal()
     try:
-        input_tokens = usage.get("input_tokens") if usage else None
-        output_tokens = usage.get("output_tokens") if usage else None
         db.add(
             ApiUsageRecord(
-                provider="chatgpt_oauth",
+                provider="gemini_oauth",
                 operation=operation,
                 model=model,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
+                input_tokens=None,
+                output_tokens=None,
                 image_count=image_count,
-                # Subscription/credit usage is not an OpenAI Platform API charge.
+                # OAuth quota/subscription usage is not an API-key charge.
                 estimated_cost_usd=0.0,
             )
         )
         db.commit()
     except Exception:  # noqa: BLE001 - usage recording must never break the generation pipeline
-        logger.exception("Failed to record ChatGPT OAuth usage for operation=%s", operation)
+        logger.exception("Failed to record Gemini OAuth usage for operation=%s", operation)
     finally:
         db.close()
 
@@ -94,7 +90,7 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
 
     total_cost = sum(r.estimated_cost_usd for r in records)
     anthropic_cost = sum(r.estimated_cost_usd for r in records if r.provider == "anthropic")
-    chatgpt_oauth_requests = sum(r.image_count for r in records if r.provider == "chatgpt_oauth")
+    gemini_oauth_requests = sum(r.image_count for r in records if r.provider == "gemini_oauth")
 
     return {
         "year": year,
@@ -102,6 +98,6 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
         "total_requests": len(records),
         "total_cost_usd": round(total_cost, 4),
         "anthropic_cost_usd": round(anthropic_cost, 4),
-        "chatgpt_oauth_requests": chatgpt_oauth_requests,
+        "gemini_oauth_requests": gemini_oauth_requests,
         "budget_usd": settings.monthly_budget_usd,
     }

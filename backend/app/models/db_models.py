@@ -286,7 +286,7 @@ class Campaign(Base):
 
 
 class ApiUsageRecord(Base):
-    """One row per real (non-mock) Claude/ChatGPT call, for a monthly
+    """One row per real (non-mock) Claude/Gemini call, for a monthly
     cost/usage summary. Never blocks or fails the generation pipeline if
     writing this row fails (see usage_service.py) - it's observability, not
     a control path."""
@@ -294,7 +294,7 @@ class ApiUsageRecord(Base):
     __tablename__ = "api_usage_records"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    provider: Mapped[str] = mapped_column(String(20))  # anthropic|chatgpt_oauth
+    provider: Mapped[str] = mapped_column(String(20))  # anthropic|gemini_oauth
     # build_prompt|refine_edit_prompt|generate_post_content|score_image|generate_image|edit_image
     operation: Mapped[str] = mapped_column(String(50))
     model: Mapped[str] = mapped_column(String(100))

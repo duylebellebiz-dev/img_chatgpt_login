@@ -7,7 +7,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 # Point at a throwaway SQLite DB and mock-mode API keys before any app module
 # is imported, so tests never touch the real Postgres instance or make real
-# Claude/ChatGPT calls.
+# Claude/Gemini calls.
 os.environ["DATABASE_URL"] = f"sqlite:///{BACKEND_ROOT / 'test_nailsocial.db'}"
 os.environ["ANTHROPIC_API_KEY"] = ""
 os.environ["IMAGE_PROVIDER"] = "mock"
