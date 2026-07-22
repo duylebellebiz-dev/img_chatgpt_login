@@ -43,6 +43,7 @@ def _generate_one(
     description: str,
     image_width: int | None,
     image_height: int | None,
+    provider: str | None,
     image_id: str,
     assignment: PairAssignment,
     design_path: Path,
@@ -74,6 +75,7 @@ def _generate_one(
             should_continue=lambda: _job_allows_processing_isolated(job_id),
             width=image_width,
             height=image_height,
+            provider=provider,
         )
         return _ImageOutcome(image_id=image_id, prompt=prompt, result=result, cancelled=False)
     except QualityGateCancelled as exc:
@@ -122,6 +124,10 @@ def process_batch_job(job_id: str) -> None:
         description = job.description
         image_width = job.image_width
         image_height = job.image_height
+        # None falls through to ImageService's own settings.image_provider
+        # default (see resolve_provider) — don't hardcode "agy" here, or a
+        # test/deployment default of "mock" would get silently overridden.
+        provider = job.provider
 
         pending: list[tuple[str, PairAssignment]] = []
         for assignment in assignments:
@@ -153,6 +159,7 @@ def process_batch_job(job_id: str) -> None:
                     description,
                     image_width,
                     image_height,
+                    provider,
                     image_id,
                     assignment,
                     design_by_name[assignment.design],

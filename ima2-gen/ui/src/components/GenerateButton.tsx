@@ -1,5 +1,6 @@
 import { useAppStore } from "../store/useAppStore";
 import { useI18n } from "../i18n";
+import { QuickProviderToggle } from "./QuickProviderToggle";
 
 export function GenerateButton() {
   const activeGenerations = useAppStore((s) => s.activeGenerations);
@@ -10,6 +11,8 @@ export function GenerateButton() {
   const loading = activeGenerations > 0;
 
   return (
+    <>
+    <QuickProviderToggle />
     <div className="generate-row">
       <button
         type="button"
@@ -33,5 +36,6 @@ export function GenerateButton() {
         ?
       </button>
     </div>
+    </>
   );
 }

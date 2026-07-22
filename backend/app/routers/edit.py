@@ -16,7 +16,7 @@ from app.models.schemas import (
 from app.services import branding_service
 from app.services.agent_service import AgentService
 from app.services.auth_service import get_current_user_id
-from app.services.image_service import ImageService
+from app.services.image_service import ImageService, resolve_provider
 from app.services.media_utils import apply_watermark, validate_size
 from app.services.storage_service import StorageService
 from app.tasks.edit_tasks import process_edit_job
@@ -57,6 +57,7 @@ def _to_out(edit: ImageEdit) -> ImageEditResponse:
             else None
         ),
         error_message=edit.error_message,
+        provider=edit.provider or "agy",
         created_at=edit.created_at,
         updated_at=edit.updated_at,
     )
@@ -74,6 +75,7 @@ def _to_job_out(job: EditJob) -> EditJobStatusOut:
         progress_total=job.progress_total,
         zip_ready=bool(job.zip_path),
         error_message=job.error_message,
+        provider=job.provider or "agy",
         created_at=job.created_at,
         updated_at=job.updated_at,
         edits=[_to_out(e) for e in job.edits],
@@ -87,6 +89,7 @@ def create_image_edit(
     image_width: int | None = Form(None),
     image_height: int | None = Form(None),
     apply_logo: bool = Form(False),
+    provider: str | None = Form(None),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     user_id: str = Depends(get_current_user_id),
@@ -97,6 +100,11 @@ def create_image_edit(
 
     try:
         validate_size(image_width, image_height)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        resolved_provider = resolve_provider(provider, settings)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -113,6 +121,7 @@ def create_image_edit(
         original_filename=image.filename or "upload",
         image_width=image_width,
         image_height=image_height,
+        provider=resolved_provider,
     )
     db.add(edit)
     db.flush()
@@ -126,7 +135,7 @@ def create_image_edit(
 
         out_path = storage.generated_image_path(edit.id, edit.id)
         generated_path, _ = image_service.edit_image(
-            original_path, prompt_used, out_path, width=image_width, height=image_height
+            original_path, prompt_used, out_path, width=image_width, height=image_height, provider=resolved_provider
         )
 
         if apply_logo:
@@ -155,6 +164,7 @@ def create_edit_batch_job(
     image_width: int | None = Form(None),
     image_height: int | None = Form(None),
     apply_logo: bool = Form(False),
+    provider: str | None = Form(None),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     user_id: str = Depends(get_current_user_id),
@@ -175,6 +185,11 @@ def create_edit_batch_job(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    try:
+        resolved_provider = resolve_provider(provider, settings)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     if apply_logo and branding_service.get_logo_path(db, user_id) is None:
         raise HTTPException(status_code=422, detail="No salon logo has been uploaded yet")
 
@@ -185,6 +200,7 @@ def create_edit_batch_job(
         image_width=image_width,
         image_height=image_height,
         apply_logo=apply_logo,
+        provider=resolved_provider,
         status="pending",
         progress_total=len(images),
     )
@@ -204,6 +220,7 @@ def create_edit_batch_job(
                     original_path=str(original_path),
                     image_width=image_width,
                     image_height=image_height,
+                    provider=resolved_provider,
                     status="generating",
                 )
             )

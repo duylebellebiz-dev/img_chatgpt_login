@@ -12,8 +12,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-4-5"
 
-    # Gemini image generation uses the locally authenticated Antigravity CLI.
-    # Use "mock" for deterministic placeholders in tests or offline work.
+    # Default image provider used when a request doesn't specify one — "agy"
+    # (Gemini via the locally authenticated Antigravity CLI) or "gpt" (ChatGPT
+    # via ima2-gen's local OAuth server). Use "mock" for deterministic
+    # placeholders in tests or offline work. Batch/edit jobs can override this
+    # per-request; see ImageService.resolve_provider.
     image_provider: str = "agy"
     agy_bin: str = ""
     agy_image_model: str = "nano-banana-2"
@@ -24,6 +27,16 @@ class Settings(BaseSettings):
     # underlying model actually renders the pixels.
     agy_model: str = "gemini-3.1-pro-high"
     agy_generation_timeout_seconds: float = 400.0
+
+    # ChatGPT image generation via ima2-gen's local OAuth server (`ima2
+    # serve`, POST /api/generate with provider="oauth") — draws on the signed-
+    # in ChatGPT account's plan quota (via `codex login`), not a billed
+    # OPENAI_API_KEY. Requires `ima2 serve` running alongside this backend;
+    # see ima2-gen/README.md and ima2-gen/docs/FAQ.md.
+    ima2_server_url: str = "http://localhost:3333"
+    gpt_oauth_model: str = "gpt-5.4-mini"
+    gpt_oauth_quality: str = "low"
+    gpt_oauth_generation_timeout_seconds: float = 180.0
 
     storage_root: str = "./storage"
 

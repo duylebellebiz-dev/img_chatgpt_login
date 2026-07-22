@@ -70,6 +70,29 @@ def record_gemini_oauth_usage(operation: str, model: str, image_count: int = 1) 
         db.close()
 
 
+def record_gpt_oauth_usage(operation: str, model: str, image_count: int = 1) -> None:
+    db = SessionLocal()
+    try:
+        db.add(
+            ApiUsageRecord(
+                provider="gpt_oauth",
+                operation=operation,
+                model=model,
+                input_tokens=None,
+                output_tokens=None,
+                image_count=image_count,
+                # Draws on the signed-in ChatGPT account's plan quota (via
+                # ima2-gen's Codex OAuth session), not a billed API key.
+                estimated_cost_usd=0.0,
+            )
+        )
+        db.commit()
+    except Exception:  # noqa: BLE001 - usage recording must never break the generation pipeline
+        logger.exception("Failed to record ChatGPT OAuth usage for operation=%s", operation)
+    finally:
+        db.close()
+
+
 def get_monthly_summary(db, year: int, month: int, settings: Settings | None = None) -> dict:
     """Deployment-wide across every tenant, not scoped per user — record_*
     is called deep inside the generation pipeline (including ThreadPoolExecutor
@@ -91,6 +114,7 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
     total_cost = sum(r.estimated_cost_usd for r in records)
     anthropic_cost = sum(r.estimated_cost_usd for r in records if r.provider == "anthropic")
     gemini_oauth_requests = sum(r.image_count for r in records if r.provider == "gemini_oauth")
+    gpt_oauth_requests = sum(r.image_count for r in records if r.provider == "gpt_oauth")
 
     return {
         "year": year,
@@ -99,5 +123,6 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
         "total_cost_usd": round(total_cost, 4),
         "anthropic_cost_usd": round(anthropic_cost, 4),
         "gemini_oauth_requests": gemini_oauth_requests,
+        "gpt_oauth_requests": gpt_oauth_requests,
         "budget_usd": settings.monthly_budget_usd,
     }

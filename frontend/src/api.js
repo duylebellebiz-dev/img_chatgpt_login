@@ -21,6 +21,7 @@ export async function createBatchJob({
   imageWidth,
   imageHeight,
   campaignId,
+  provider,
 }) {
   const form = new FormData();
   designImages.forEach((file) => form.append("design_images", file));
@@ -34,6 +35,9 @@ export async function createBatchJob({
   }
   if (campaignId) {
     form.append("campaign_id", campaignId);
+  }
+  if (provider) {
+    form.append("provider", provider);
   }
 
   const res = await fetch(`${BASE_URL}/api/batch`, { method: "POST", body: form });
@@ -85,13 +89,16 @@ export async function deleteBatchJob(jobId) {
   return body;
 }
 
-export async function editImage({ image, prompt, imageWidth, imageHeight }) {
+export async function editImage({ image, prompt, imageWidth, imageHeight, provider }) {
   const form = new FormData();
   form.append("image", image);
   form.append("prompt", prompt);
   if (imageWidth && imageHeight) {
     form.append("image_width", String(imageWidth));
     form.append("image_height", String(imageHeight));
+  }
+  if (provider) {
+    form.append("provider", provider);
   }
 
   const res = await fetch(`${BASE_URL}/api/edit`, { method: "POST", body: form });
@@ -102,7 +109,7 @@ export async function editImage({ image, prompt, imageWidth, imageHeight }) {
   return body;
 }
 
-export async function createEditBatchJob({ images, prompt, imageWidth, imageHeight, applyLogo }) {
+export async function createEditBatchJob({ images, prompt, imageWidth, imageHeight, applyLogo, provider }) {
   const form = new FormData();
   images.forEach((file) => form.append("images", file));
   form.append("prompt", prompt);
@@ -111,6 +118,9 @@ export async function createEditBatchJob({ images, prompt, imageWidth, imageHeig
     form.append("image_height", String(imageHeight));
   }
   form.append("apply_logo", String(Boolean(applyLogo)));
+  if (provider) {
+    form.append("provider", provider);
+  }
 
   const res = await fetch(`${BASE_URL}/api/edit/batch`, { method: "POST", body: form });
   const body = await res.json().catch(() => ({}));

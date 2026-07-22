@@ -76,6 +76,11 @@ const DETAIL_PROMPT_TEMPLATES = [
   },
 ];
 
+const IMAGE_PROVIDERS = [
+  { value: "agy", label: "Gemini", help: "Free via Antigravity CLI OAuth." },
+  { value: "gpt", label: "ChatGPT", help: "Free via ChatGPT OAuth (requires ima2 serve running)." },
+];
+
 const PAIRING_MODES = [
   { value: "cross", label: "Cross Pair", help: "Every design × every pose combination." },
   { value: "random", label: "Random Pair", help: "Randomly pairs designs with poses." },
@@ -103,6 +108,7 @@ export default function UploadForm({ onSubmit, submitting }) {
   const [designImages, setDesignImages] = useState([]);
   const [poseImages, setPoseImages] = useState([]);
   const [pairingMode, setPairingMode] = useState("cross");
+  const [provider, setProvider] = useState("agy");
   const [numImages, setNumImages] = useState(20);
   const [description, setDescription] = useState("summer luxury nail design");
   const [size, setSize] = useState({ width: 1080, height: 1350 });
@@ -153,6 +159,7 @@ export default function UploadForm({ onSubmit, submitting }) {
       imageWidth: size.width,
       imageHeight: size.height,
       campaignId: campaignId || undefined,
+      provider,
     });
   }
 
@@ -227,6 +234,27 @@ export default function UploadForm({ onSubmit, submitting }) {
       </div>
 
       <SizeSelector onChange={setSize} />
+
+      <div>
+        <label className="block text-sm font-medium text-neutral-900">Image provider</label>
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
+          {IMAGE_PROVIDERS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setProvider(p.value)}
+              className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                provider === p.value
+                  ? "border-violet-500 bg-violet-50 text-violet-700"
+                  : "border-neutral-300 text-neutral-700 hover:border-neutral-400"
+              }`}
+            >
+              {p.label}
+              <span className="mt-0.5 block text-xs font-normal text-neutral-500">{p.help}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {campaigns.length > 0 && (
         <div>

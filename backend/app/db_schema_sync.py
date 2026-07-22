@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # since ALTER TABLE ADD COLUMN ... REFERENCES support differs across the
 # SQLite (tests) and Postgres (prod) dialects this runs against.
 _COLUMNS_TO_ENSURE: dict[str, list[tuple[str, str]]] = {
-    "batch_jobs": [("campaign_id", "VARCHAR(36)"), ("user_id", "VARCHAR(36)")],
+    "batch_jobs": [("campaign_id", "VARCHAR(36)"), ("user_id", "VARCHAR(36)"), ("provider", "VARCHAR(20)")],
     "scheduled_posts": [
         ("campaign_id", "VARCHAR(36)"),
         ("edit_id", "VARCHAR(36)"),
@@ -31,8 +31,8 @@ _COLUMNS_TO_ENSURE: dict[str, list[tuple[str, str]]] = {
         ("image_ids", "JSON"),
         ("edit_ids", "JSON"),
     ],
-    "edit_jobs": [("user_id", "VARCHAR(36)")],
-    "image_edits": [("user_id", "VARCHAR(36)")],
+    "edit_jobs": [("user_id", "VARCHAR(36)"), ("provider", "VARCHAR(20)")],
+    "image_edits": [("user_id", "VARCHAR(36)"), ("provider", "VARCHAR(20)")],
     "social_accounts": [("user_id", "VARCHAR(36)")],
     "notifications": [("user_id", "VARCHAR(36)")],
     "campaigns": [

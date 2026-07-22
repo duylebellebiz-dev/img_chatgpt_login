@@ -210,6 +210,7 @@ class QualityService:
         should_continue: Callable[[], bool] | None = None,
         width: int | None = None,
         height: int | None = None,
+        provider: str | None = None,
     ) -> QualityResult:
         result: QualityResult | None = None
         keep_running = should_continue or (lambda: True)
@@ -232,6 +233,7 @@ class QualityService:
                 attempt=attempt,
                 width=width,
                 height=height,
+                provider=provider,
             )
             if not keep_running():
                 result = QualityResult(

@@ -50,6 +50,7 @@ def _edit_one(
     prompt: str,
     image_width: int | None,
     image_height: int | None,
+    provider: str | None,
     edit_id: str,
     original_path: Path,
     out_path: Path,
@@ -66,7 +67,7 @@ def _edit_one(
             return _EditOutcome(edit_id, prompt_used=prompt_used, generated_path=None, cancelled=True, error=None)
 
         generated_path, _ = image_service.edit_image(
-            original_path, prompt_used, out_path, width=image_width, height=image_height
+            original_path, prompt_used, out_path, width=image_width, height=image_height, provider=provider
         )
         if logo_path is not None:
             apply_watermark(generated_path, logo_path)
@@ -99,6 +100,10 @@ def process_edit_job(job_id: str) -> None:
         prompt = job.prompt
         image_width = job.image_width
         image_height = job.image_height
+        # None falls through to ImageService's own settings.image_provider
+        # default (see resolve_provider) — don't hardcode "agy" here, or a
+        # test/deployment default of "mock" would get silently overridden.
+        provider = job.provider
         logo_path = branding_service.get_logo_path(db, job.user_id) if job.apply_logo else None
 
         generated_paths: list[Path] = []
@@ -115,6 +120,7 @@ def process_edit_job(job_id: str) -> None:
                     prompt,
                     image_width,
                     image_height,
+                    provider,
                     edit_id,
                     original_path,
                     out_path,

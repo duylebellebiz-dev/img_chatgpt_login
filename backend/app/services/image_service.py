@@ -7,7 +7,22 @@ from PIL import Image, ImageDraw, ImageFont
 from app.config import Settings, get_settings
 from app.services import usage_service
 from app.services.agy_service import generate_via_agy
+from app.services.gpt_service import generate_via_gpt_oauth
 from app.services.media_utils import detect_image_mime_type, extension_for_mime_type, fit_to_size
+
+_VALID_PROVIDERS = {"agy", "gpt", "mock"}
+
+
+def resolve_provider(provider: str | None, settings: Settings) -> str:
+    """Picks the effective provider for one generate/edit call: an explicit
+    per-request `provider` wins, otherwise falls back to the deployment's
+    `image_provider` default. Raises on an unknown value, so a bad choice
+    fails at the API boundary (router) rather than deep inside a background
+    job."""
+    value = (provider or settings.image_provider).strip().lower()
+    if value not in _VALID_PROVIDERS:
+        raise ValueError(f"Unsupported image provider: {value}")
+    return value
 
 _NO_TEXT_SUFFIX = (
     " Do not render any text, letters, numbers, words, captions, watermarks, "
@@ -114,17 +129,17 @@ def _save_image_bytes(
 class ImageService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
-        provider = self.settings.image_provider.strip().lower()
-        if provider not in {"agy", "mock"}:
-            raise ValueError("IMAGE_PROVIDER must be 'agy' or 'mock'")
+        # Validates the deployment default only; a per-call `provider`
+        # argument (see resolve_provider) can still pick a different one.
+        resolve_provider(None, self.settings)
 
-    @property
-    def is_mock(self) -> bool:
-        return self.settings.uses_mock_images
-
-    def _request_image(self, prompt: str, references: list[Path], operation: str) -> bytes:
-        image_bytes = generate_via_agy(prompt, references, self.settings)
-        usage_service.record_gemini_oauth_usage(operation, self.settings.agy_image_model, image_count=1)
+    def _request_image(self, prompt: str, references: list[Path], operation: str, provider: str) -> bytes:
+        if provider == "gpt":
+            image_bytes = generate_via_gpt_oauth(prompt, references, self.settings)
+            usage_service.record_gpt_oauth_usage(operation, self.settings.gpt_oauth_model, image_count=1)
+        else:
+            image_bytes = generate_via_agy(prompt, references, self.settings)
+            usage_service.record_gemini_oauth_usage(operation, self.settings.agy_image_model, image_count=1)
         return image_bytes
 
     def generate_image(
@@ -137,11 +152,13 @@ class ImageService:
         attempt: int = 1,
         width: int | None = None,
         height: int | None = None,
+        provider: str | None = None,
     ) -> tuple[Path, str]:
-        if self.is_mock:
+        effective_provider = resolve_provider(provider, self.settings)
+        if effective_provider == "mock":
             return _mock_generate(design_path, pose_path, prompt, variation, attempt, out_path, width, height)
         full_prompt = prompt + _COMPOSITING_CONTRACT + _QUALITY_SUFFIX + _NO_TEXT_SUFFIX
-        image_bytes = self._request_image(full_prompt, [pose_path, design_path], "generate_image")
+        image_bytes = self._request_image(full_prompt, [pose_path, design_path], "generate_image", effective_provider)
         return _save_image_bytes(image_bytes, out_path, width, height)
 
     def edit_image(
@@ -152,9 +169,11 @@ class ImageService:
         attempt: int = 1,
         width: int | None = None,
         height: int | None = None,
+        provider: str | None = None,
     ) -> tuple[Path, str]:
-        if self.is_mock:
+        effective_provider = resolve_provider(provider, self.settings)
+        if effective_provider == "mock":
             return _mock_edit(image_path, prompt, attempt, out_path, width, height)
         full_prompt = prompt + _QUALITY_SUFFIX + _NO_TEXT_SUFFIX
-        image_bytes = self._request_image(full_prompt, [image_path], "edit_image")
+        image_bytes = self._request_image(full_prompt, [image_path], "edit_image", effective_provider)
         return _save_image_bytes(image_bytes, out_path, width, height)

@@ -17,6 +17,7 @@ from app.models.schemas import (
 )
 from app.services.auth_service import get_current_user_id
 from app.services.media_utils import validate_size
+from app.services.image_service import resolve_provider
 from app.services.pairing_service import PairingValidationError, plan_output_count
 from app.services.storage_service import StorageService
 from app.tasks.batch_tasks import process_batch_job
@@ -40,6 +41,7 @@ def create_batch_job(
     image_width: int | None = Form(None),
     image_height: int | None = Form(None),
     campaign_id: str | None = Form(None),
+    provider: str | None = Form(None),
     design_images: list[UploadFile] = File(...),
     pose_images: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
@@ -57,6 +59,11 @@ def create_batch_job(
 
     try:
         validate_size(image_width, image_height)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        resolved_provider = resolve_provider(provider, settings)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -83,6 +90,7 @@ def create_batch_job(
         status="pending",
         progress_total=output_plan.approved_count,
         campaign_id=campaign_id,
+        provider=resolved_provider,
     )
 
     try:
@@ -148,6 +156,7 @@ def list_batch_jobs(
             progress_total=job.progress_total,
             zip_ready=bool(job.zip_path),
             campaign_id=job.campaign_id,
+            provider=job.provider or "agy",
             created_at=job.created_at,
             updated_at=job.updated_at,
         )
@@ -192,6 +201,7 @@ def _to_status_out(job: BatchJob) -> BatchJobStatusOut:
         created_at=job.created_at,
         updated_at=job.updated_at,
         campaign_id=job.campaign_id,
+        provider=job.provider or "agy",
         images=images,
     )
 

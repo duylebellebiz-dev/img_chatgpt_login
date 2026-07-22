@@ -39,6 +39,7 @@ class BatchJob(Base):
     pairing_mode: Mapped[str] = mapped_column(String(20))  # cross|random|one_to_one
     num_images: Mapped[int] = mapped_column(Integer)
     description: Mapped[str] = mapped_column(Text, default="")
+    provider: Mapped[str | None] = mapped_column(String(20), nullable=True)  # agy|gpt; None = use deployment default
 
     image_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     image_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -102,6 +103,7 @@ class EditJob(Base):
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|processing|completed|failed|cancelled
     prompt: Mapped[str] = mapped_column(Text)
+    provider: Mapped[str | None] = mapped_column(String(20), nullable=True)  # agy|gpt; None = use deployment default
 
     image_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     image_height: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -137,6 +139,7 @@ class ImageEdit(Base):
     prompt: Mapped[str] = mapped_column(Text)
     prompt_used: Mapped[str | None] = mapped_column(Text, nullable=True)
     generated_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(20), nullable=True)  # agy|gpt; None = use deployment default
 
     image_width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     image_height: Mapped[int | None] = mapped_column(Integer, nullable=True)

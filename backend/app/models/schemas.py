@@ -79,6 +79,7 @@ class BatchJobSummaryOut(BaseModel):
     progress_total: int
     zip_ready: bool
     campaign_id: str | None = None
+    provider: str = "agy"
     created_at: datetime
     updated_at: datetime
 
@@ -116,6 +117,7 @@ class BatchJobStatusOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     campaign_id: str | None = None
+    provider: str = "agy"
     images: list[GeneratedImageOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -137,6 +139,7 @@ class ImageEditResponse(BaseModel):
     original_image_url: str | None
     image_url: str | None
     error_message: str | None
+    provider: str = "agy"
     created_at: datetime
     updated_at: datetime
 
@@ -160,6 +163,7 @@ class EditJobStatusOut(BaseModel):
     progress_total: int
     zip_ready: bool
     error_message: str | None
+    provider: str = "agy"
     created_at: datetime
     updated_at: datetime
     edits: list[ImageEditResponse] = Field(default_factory=list)
@@ -314,6 +318,7 @@ class UsageSummaryOut(BaseModel):
     total_cost_usd: float
     anthropic_cost_usd: float
     gemini_oauth_requests: int
+    gpt_oauth_requests: int = 0
     budget_usd: float = 0.0
 
 

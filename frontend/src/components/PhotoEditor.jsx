@@ -7,6 +7,11 @@ import PromptTemplates from "./PromptTemplates";
 import SizeSelector from "./SizeSelector";
 import { AlertIcon, SparklesIcon, Spinner } from "./icons";
 
+const IMAGE_PROVIDERS = [
+  { value: "agy", label: "Gemini", help: "Free via Antigravity CLI OAuth." },
+  { value: "gpt", label: "ChatGPT", help: "Free via ChatGPT OAuth (requires ima2 serve running)." },
+];
+
 const POLL_INTERVAL_MS = 2000;
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
 const MAX_POLL_ERRORS = 3;
@@ -58,6 +63,7 @@ export default function PhotoEditor() {
   const [images, setImages] = useState([]);
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState({ width: 1080, height: 1350 });
+  const [provider, setProvider] = useState("agy");
   const [logoUrl, setLogoUrl] = useState(null);
   const [applyLogo, setApplyLogo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -107,6 +113,7 @@ export default function PhotoEditor() {
         imageWidth: size.width,
         imageHeight: size.height,
         applyLogo,
+        provider,
       });
       const jobId = created.job_id;
 
@@ -160,13 +167,34 @@ export default function PhotoEditor() {
         <div>
           <h2 className="text-lg font-semibold text-neutral-900">AI Photo Editor</h2>
           <p className="mt-1 text-sm text-neutral-500">
-            Upload one or more photos and describe the edit you want — Claude sharpens the instruction, ChatGPT
-            applies it to every photo.
+            Upload one or more photos and describe the edit you want — Claude sharpens the instruction, then your
+            chosen provider applies it to every photo.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <ImageDropzone label="Photos" hint="PNG or JPG, upload multiple" multiple files={images} onChange={setImages} />
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-900">Image provider</label>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              {IMAGE_PROVIDERS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setProvider(p.value)}
+                  className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    provider === p.value
+                      ? "border-violet-500 bg-violet-50 text-violet-700"
+                      : "border-neutral-300 text-neutral-700 hover:border-neutral-400"
+                  }`}
+                >
+                  {p.label}
+                  <span className="mt-0.5 block text-xs font-normal text-neutral-500">{p.help}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <SizeSelector onChange={setSize} />
 
