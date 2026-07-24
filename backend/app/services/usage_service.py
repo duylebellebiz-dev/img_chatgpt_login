@@ -93,6 +93,58 @@ def record_gpt_oauth_usage(operation: str, model: str, image_count: int = 1) -> 
         db.close()
 
 
+def record_gemini_api_usage(
+    operation: str, model: str, settings: Settings | None = None, image_count: int = 1
+) -> None:
+    settings = settings or get_settings()
+    db = SessionLocal()
+    try:
+        db.add(
+            ApiUsageRecord(
+                provider="gemini_api",
+                operation=operation,
+                model=model,
+                input_tokens=None,
+                output_tokens=None,
+                image_count=image_count,
+                # Billed API key usage — flat per-image estimate, since Gemini
+                # image output isn't token-metered the same way text is.
+                estimated_cost_usd=image_count * settings.gemini_api_price_per_image_usd,
+            )
+        )
+        db.commit()
+    except Exception:  # noqa: BLE001 - usage recording must never break the generation pipeline
+        logger.exception("Failed to record Gemini API usage for operation=%s", operation)
+    finally:
+        db.close()
+
+
+def record_gemini_batch_api_usage(
+    operation: str, model: str, settings: Settings | None = None, image_count: int = 1
+) -> None:
+    settings = settings or get_settings()
+    db = SessionLocal()
+    try:
+        db.add(
+            ApiUsageRecord(
+                provider="gemini_batch_api",
+                operation=operation,
+                model=model,
+                input_tokens=None,
+                output_tokens=None,
+                image_count=image_count,
+                # Billed API key usage at Google's discounted Batch Mode rate
+                # — separate flat per-image estimate from "gemini_api" above.
+                estimated_cost_usd=image_count * settings.gemini_batch_api_price_per_image_usd,
+            )
+        )
+        db.commit()
+    except Exception:  # noqa: BLE001 - usage recording must never break the generation pipeline
+        logger.exception("Failed to record Gemini Batch API usage for operation=%s", operation)
+    finally:
+        db.close()
+
+
 def get_monthly_summary(db, year: int, month: int, settings: Settings | None = None) -> dict:
     """Deployment-wide across every tenant, not scoped per user — record_*
     is called deep inside the generation pipeline (including ThreadPoolExecutor
@@ -115,6 +167,10 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
     anthropic_cost = sum(r.estimated_cost_usd for r in records if r.provider == "anthropic")
     gemini_oauth_requests = sum(r.image_count for r in records if r.provider == "gemini_oauth")
     gpt_oauth_requests = sum(r.image_count for r in records if r.provider == "gpt_oauth")
+    gemini_api_requests = sum(r.image_count for r in records if r.provider == "gemini_api")
+    gemini_api_cost = sum(r.estimated_cost_usd for r in records if r.provider == "gemini_api")
+    gemini_batch_api_requests = sum(r.image_count for r in records if r.provider == "gemini_batch_api")
+    gemini_batch_api_cost = sum(r.estimated_cost_usd for r in records if r.provider == "gemini_batch_api")
 
     return {
         "year": year,
@@ -124,5 +180,9 @@ def get_monthly_summary(db, year: int, month: int, settings: Settings | None = N
         "anthropic_cost_usd": round(anthropic_cost, 4),
         "gemini_oauth_requests": gemini_oauth_requests,
         "gpt_oauth_requests": gpt_oauth_requests,
+        "gemini_api_requests": gemini_api_requests,
+        "gemini_api_cost_usd": round(gemini_api_cost, 4),
+        "gemini_batch_api_requests": gemini_batch_api_requests,
+        "gemini_batch_api_cost_usd": round(gemini_batch_api_cost, 4),
         "budget_usd": settings.monthly_budget_usd,
     }

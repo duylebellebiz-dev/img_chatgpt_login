@@ -319,6 +319,10 @@ class UsageSummaryOut(BaseModel):
     anthropic_cost_usd: float
     gemini_oauth_requests: int
     gpt_oauth_requests: int = 0
+    gemini_api_requests: int = 0
+    gemini_api_cost_usd: float = 0.0
+    gemini_batch_api_requests: int = 0
+    gemini_batch_api_cost_usd: float = 0.0
     budget_usd: float = 0.0
 
 

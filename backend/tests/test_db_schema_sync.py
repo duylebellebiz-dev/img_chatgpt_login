@@ -9,6 +9,7 @@ def _engine_with_pre_migration_tables():
         conn.execute(text("CREATE TABLE batch_jobs (id VARCHAR(36) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE scheduled_posts (id VARCHAR(36) PRIMARY KEY)"))
         conn.execute(text("CREATE TABLE campaigns (id VARCHAR(36) PRIMARY KEY)"))
+        conn.execute(text("CREATE TABLE generated_images (id VARCHAR(36) PRIMARY KEY)"))
     return engine
 
 
@@ -54,6 +55,16 @@ def test_sync_schema_adds_missing_image_ids_and_edit_ids_columns():
     inspector = inspect(engine)
     scheduled_post_columns = {c["name"] for c in inspector.get_columns("scheduled_posts")}
     assert {"image_ids", "edit_ids"} <= scheduled_post_columns
+
+
+def test_sync_schema_adds_missing_provider_job_ref_column():
+    engine = _engine_with_pre_migration_tables()
+
+    sync_schema(engine)
+
+    inspector = inspect(engine)
+    generated_image_columns = {c["name"] for c in inspector.get_columns("generated_images")}
+    assert "provider_job_ref" in generated_image_columns
 
 
 def test_sync_schema_is_idempotent():

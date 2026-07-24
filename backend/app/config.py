@@ -38,6 +38,37 @@ class Settings(BaseSettings):
     gpt_oauth_quality: str = "low"
     gpt_oauth_generation_timeout_seconds: float = 180.0
 
+    # Google Gemini API (billed) — the "gemini_api" provider option. Calls
+    # generativelanguage.googleapis.com directly with a real API key, unlike
+    # "agy" (free via the locally authenticated Antigravity CLI). Get a key
+    # at aistudio.google.com/apikey. Uses the same batch pipeline as every
+    # other provider (see batch_max_images below) — one image per API call,
+    # run batch_concurrency at a time, so a job can still request 1-100
+    # images; this provider doesn't need its own batch endpoint.
+    gemini_api_key: str = ""
+    gemini_api_model: str = "nano-banana-2"
+    gemini_api_timeout_seconds: float = 120.0
+    # $ per generated image for the usage/cost dashboard. Gemini image output
+    # isn't metered the same way as text tokens, so this is a flat estimate
+    # you can tune to your actual billing tier; 0 = don't estimate a cost,
+    # just count images.
+    gemini_api_price_per_image_usd: float = 0.0
+
+    # Google Gemini Batch API (billed, "gemini_batch_api" provider) — same
+    # GEMINI_API_KEY/GEMINI_API_MODEL as "gemini_api" above, but calls
+    # batchGenerateContent instead of generateContent: ~50% cheaper per
+    # Google's Batch Mode pricing, in exchange for not returning an image
+    # instantly. Each image is submitted as its own batch job and polled
+    # until it finishes — see gemini_batch_api_service.py. Google's own
+    # target turnaround is up to 24h (usually much quicker); raise the
+    # timeout below if your batches are consistently slow instead of
+    # tightening the poll interval.
+    gemini_batch_api_poll_interval_seconds: float = 10.0
+    gemini_batch_api_timeout_seconds: float = 900.0
+    # Separate from gemini_api_price_per_image_usd since this provider is
+    # billed at Google's discounted Batch Mode rate, not the standard rate.
+    gemini_batch_api_price_per_image_usd: float = 0.0
+
     storage_root: str = "./storage"
 
     # Object storage (Cloudinary) — the durable copy of everything under
@@ -88,12 +119,35 @@ class Settings(BaseSettings):
     # attempt fails regardless of its overall score.
     quality_fidelity_floor: int = 70
 
+    # Per-provider overrides for the two retry budgets above — a provider
+    # whose misses are usually a transient/stochastic bad roll (ChatGPT via
+    # the free OAuth quota) can afford more automatic retries than one
+    # that's billed per attempt and rarely improves on a straight re-roll
+    # (the paid Gemini API key). These replace both quality_max_retries and
+    # near_duplicate_max_retries for their named provider; every other
+    # provider (agy, gemini_batch_api, mock) keeps using the two settings
+    # above. See QualityService._resolve_retry_budgets.
+    gpt_quality_max_retries: int = 3
+    gpt_near_duplicate_max_retries: int = 3
+    gemini_api_quality_max_retries: int = 0
+    gemini_api_near_duplicate_max_retries: int = 0
+
     batch_min_images: int = 1
     batch_max_images: int = 100
     # How many images in a batch job to generate concurrently. Generation is
     # I/O-bound (Gemini + Claude network round trips), so running several in
     # parallel cuts wall-clock time for a batch without changing per-image cost.
     batch_concurrency: int = 4
+    # A BatchJob still marked "processing" when the backend starts up was
+    # being run by a now-dead process — see batch_tasks.process_batch_job's
+    # threading model (a job's worker thread lives only as long as the
+    # process that started it, e.g. FastAPI BackgroundTasks on a locally-run
+    # server: turning the computer off kills it mid-job). Resuming it
+    # automatically at startup (see batch_tasks.resume_orphaned_batch_jobs)
+    # picks back up from the images already saved instead of losing the
+    # whole job. Off by default in tests (see conftest.py) so background
+    # recovery threads never mutate the test DB across unrelated modules.
+    resume_orphaned_batch_jobs_on_startup: bool = True
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

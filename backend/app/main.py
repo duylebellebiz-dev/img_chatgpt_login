@@ -11,6 +11,7 @@ from app.db_schema_sync import sync_schema
 from app.routers import auth, batch, branding, campaigns, edit, notifications, performance, scheduled_posts, social, usage
 from app.services import scheduler_service
 from app.services.storage_service import StorageService
+from app.tasks.batch_tasks import resume_orphaned_batch_jobs
 
 
 @asynccontextmanager
@@ -18,6 +19,8 @@ async def lifespan(app: FastAPI):
     # Phase 1 MVP: create tables directly instead of Alembic migrations.
     Base.metadata.create_all(bind=engine)
     sync_schema(engine)
+    if settings.resume_orphaned_batch_jobs_on_startup:
+        resume_orphaned_batch_jobs()
     scheduler_service.start_scheduler()
     yield
     scheduler_service.stop_scheduler()

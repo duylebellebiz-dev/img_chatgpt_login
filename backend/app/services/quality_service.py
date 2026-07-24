@@ -8,8 +8,10 @@ capped retry budgets (to avoid infinite loops / runaway API cost):
 mode caught by is_near_duplicate_image (see generate_with_quality_gate) —
 the latter retries even when quality_max_retries is 0, since it's a known,
 usually-correctable bug rather than a "just needs a human to look at it"
-low score. This service owns the generate->score->retry loop; it never
-generates images itself (that's ImageService's job).
+low score. Both budgets can be overridden per provider (see
+_resolve_retry_budgets and the gpt_*/gemini_api_* settings in config.py).
+This service owns the generate->score->retry loop; it never generates
+images itself (that's ImageService's job).
 """
 
 import hashlib
@@ -23,7 +25,7 @@ from pathlib import Path
 from app.config import Settings, get_settings
 from app.services import usage_service
 from app.services.anthropic_utils import extract_text
-from app.services.image_service import ImageService
+from app.services.image_service import ImageService, resolve_provider
 from app.services.media_utils import is_near_duplicate_image, prepare_image_for_api
 
 logger = logging.getLogger(__name__)
@@ -152,6 +154,18 @@ class QualityService:
     def is_mock(self) -> bool:
         return self._client is None
 
+    def _resolve_retry_budgets(self, provider: str | None) -> tuple[int, int]:
+        """Per-provider override for (quality_max_retries,
+        near_duplicate_max_retries) — see the gpt_*/gemini_api_* settings in
+        config.py. Falls back to the generic pair for every other provider
+        (agy, gemini_batch_api, mock)."""
+        effective_provider = resolve_provider(provider, self.settings)
+        if effective_provider == "gpt":
+            return self.settings.gpt_quality_max_retries, self.settings.gpt_near_duplicate_max_retries
+        if effective_provider == "gemini_api":
+            return self.settings.gemini_api_quality_max_retries, self.settings.gemini_api_near_duplicate_max_retries
+        return self.settings.quality_max_retries, self.settings.near_duplicate_max_retries
+
     def score_image(
         self, image_path: Path, design_path: Path | None = None, pose_path: Path | None = None
     ) -> tuple[float, dict]:
@@ -211,12 +225,24 @@ class QualityService:
         width: int | None = None,
         height: int | None = None,
         provider: str | None = None,
+        resume_job_ref: str | None = None,
+        on_job_submitted: Callable[[str], None] | None = None,
     ) -> QualityResult:
+        """resume_job_ref, if given, is a previously-submitted "gemini_batch_api"
+        job to reconnect to on the very first attempt (see
+        ImageService.recover_gemini_batch_image) instead of starting a fresh,
+        separately-billed generation — used when resuming a batch job that
+        was interrupted mid-poll by a backend restart (see
+        batch_tasks.process_batch_job). If recovery fails (job expired,
+        Google-side failure, etc.) this falls back to a normal fresh
+        generation for that attempt rather than failing the whole image.
+        on_job_submitted is forwarded to every fresh generate_image call so
+        a *new* submission's job ref also gets persisted, in case this
+        process dies before this poll finishes too."""
         result: QualityResult | None = None
         keep_running = should_continue or (lambda: True)
         current_prompt = prompt
-        quality_retries_left = self.settings.quality_max_retries
-        near_duplicate_retries_left = self.settings.near_duplicate_max_retries
+        quality_retries_left, near_duplicate_retries_left = self._resolve_retry_budgets(provider)
 
         attempt = 0
         while True:
@@ -224,17 +250,44 @@ class QualityService:
             if not keep_running():
                 raise QualityGateCancelled(result)
 
-            generated_path, _ = image_service.generate_image(
-                design_path,
-                pose_path,
-                current_prompt,
-                variation,
-                out_path,
-                attempt=attempt,
-                width=width,
-                height=height,
-                provider=provider,
-            )
+            if attempt == 1 and resume_job_ref:
+                try:
+                    generated_path, _ = image_service.recover_gemini_batch_image(
+                        resume_job_ref, out_path, width=width, height=height
+                    )
+                except Exception:
+                    logger.warning(
+                        "Could not recover in-flight Gemini Batch API job %s for variation %d — "
+                        "submitting a fresh generation instead.",
+                        resume_job_ref,
+                        variation,
+                        exc_info=True,
+                    )
+                    generated_path, _ = image_service.generate_image(
+                        design_path,
+                        pose_path,
+                        current_prompt,
+                        variation,
+                        out_path,
+                        attempt=attempt,
+                        width=width,
+                        height=height,
+                        provider=provider,
+                        on_job_submitted=on_job_submitted,
+                    )
+            else:
+                generated_path, _ = image_service.generate_image(
+                    design_path,
+                    pose_path,
+                    current_prompt,
+                    variation,
+                    out_path,
+                    attempt=attempt,
+                    width=width,
+                    height=height,
+                    provider=provider,
+                    on_job_submitted=on_job_submitted,
+                )
             if not keep_running():
                 result = QualityResult(
                     attempt=attempt,

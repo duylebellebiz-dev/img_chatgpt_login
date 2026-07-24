@@ -12,6 +12,13 @@ os.environ["DATABASE_URL"] = f"sqlite:///{BACKEND_ROOT / 'test_nailsocial.db'}"
 os.environ["ANTHROPIC_API_KEY"] = ""
 os.environ["IMAGE_PROVIDER"] = "mock"
 os.environ["STORAGE_ROOT"] = str(BACKEND_ROOT / "test_storage")
+# Otherwise every `client` fixture across the suite (each one spins up the
+# app via TestClient, triggering lifespan startup) would spawn background
+# recovery threads for any BatchJob a previous, unrelated test left at
+# status="processing" in the shared test_nailsocial.db — mutating that row
+# from a thread outside the current test's control. See
+# batch_tasks.resume_orphaned_batch_jobs / config.py.
+os.environ["RESUME_ORPHANED_BATCH_JOBS_ON_STARTUP"] = "false"
 # A developer's local .env may have real Facebook/Cloudinary credentials
 # configured (see backend/.env.example) — blank them here so the test suite
 # always runs against the same mock/unconfigured (local-disk-only) defaults

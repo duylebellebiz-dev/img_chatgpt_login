@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 # SQLite (tests) and Postgres (prod) dialects this runs against.
 _COLUMNS_TO_ENSURE: dict[str, list[tuple[str, str]]] = {
     "batch_jobs": [("campaign_id", "VARCHAR(36)"), ("user_id", "VARCHAR(36)"), ("provider", "VARCHAR(20)")],
+    "generated_images": [("provider_job_ref", "VARCHAR(255)")],
     "scheduled_posts": [
         ("campaign_id", "VARCHAR(36)"),
         ("edit_id", "VARCHAR(36)"),

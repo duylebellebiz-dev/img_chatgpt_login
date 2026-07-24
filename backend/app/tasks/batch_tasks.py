@@ -1,3 +1,5 @@
+import logging
+import threading
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +13,8 @@ from app.services.image_service import ImageService
 from app.services.pairing_service import PairAssignment, build_pairs
 from app.services.quality_service import QualityGateCancelled, QualityResult, QualityService
 from app.services.storage_service import StorageService
+
+logger = logging.getLogger(__name__)
 
 
 def _refresh_job(db, job_id: str) -> BatchJob | None:
@@ -26,6 +30,24 @@ def _job_allows_processing_isolated(job_id: str) -> bool:
     try:
         job = session.get(BatchJob, job_id)
         return bool(job is not None and job.status != "cancelled")
+    finally:
+        session.close()
+
+
+def _record_provider_job_ref(image_id: str, job_ref: str) -> None:
+    """Persists a "gemini_batch_api" job's Google-side name onto its
+    GeneratedImage row the moment submission succeeds — before the
+    (potentially long) poll starts — so a restart mid-poll can reconnect to
+    it instead of losing it. Own isolated session: called from a worker
+    thread, same reasoning as _job_allows_processing_isolated."""
+    session = SessionLocal()
+    try:
+        image = session.get(GeneratedImage, image_id)
+        if image is not None:
+            image.provider_job_ref = job_ref
+            session.commit()
+    except Exception:  # noqa: BLE001 - best-effort; losing this must not fail generation
+        logger.exception("Failed to record provider_job_ref for image=%s", image_id)
     finally:
         session.close()
 
@@ -52,10 +74,14 @@ def _generate_one(
     agent: AgentService,
     image_service: ImageService,
     quality: QualityService,
+    resume_job_ref: str | None = None,
 ) -> _ImageOutcome:
     """Runs entirely off the main thread's DB session: builds the prompt, then
     generates+scores (with retries) via the quality gate. No database access
-    happens here except the isolated cancellation check inside the gate."""
+    happens here except the isolated cancellation check inside the gate and
+    the on_job_submitted callback below (both open their own session).
+    resume_job_ref, when set, is a previously-submitted Gemini Batch API job
+    to reconnect to — see process_batch_job's resume path."""
     prompt = agent.build_prompt(
         description,
         assignment.design,
@@ -76,6 +102,8 @@ def _generate_one(
             width=image_width,
             height=image_height,
             provider=provider,
+            resume_job_ref=resume_job_ref,
+            on_job_submitted=lambda job_ref: _record_provider_job_ref(image_id, job_ref),
         )
         return _ImageOutcome(image_id=image_id, prompt=prompt, result=result, cancelled=False)
     except QualityGateCancelled as exc:
@@ -101,22 +129,59 @@ def process_batch_job(job_id: str) -> None:
         job.error_message = None
         db.commit()
 
-        design_names = [Path(p).name for p in job.design_paths]
-        pose_names = [Path(p).name for p in job.pose_paths]
         design_by_name = {Path(p).name: Path(p) for p in job.design_paths}
         pose_by_name = {Path(p).name: Path(p) for p in job.pose_paths}
 
-        assignments = build_pairs(
-            designs=design_names,
-            poses=pose_names,
-            mode=PairingMode(job.pairing_mode),
-            count=job.num_images,
-            min_count=settings.batch_min_images,
-            max_count=settings.batch_max_images,
-        )
+        # A GeneratedImage row already existing for this job means we're
+        # resuming one interrupted by an earlier process dying mid-run (see
+        # main.py's startup recovery) rather than starting fresh. Reuse
+        # those rows' assignments as-is instead of re-running build_pairs —
+        # "random" pairing mode has no fixed seed, so calling it again here
+        # would reshuffle the assignments and desync them from the rows
+        # already created (and, for already-finished rows, from the images
+        # already generated on disk).
+        existing_images = db.query(GeneratedImage).filter(GeneratedImage.batch_job_id == job.id).all()
 
-        job.progress_total = len(assignments)
-        job.progress_completed = 0
+        pending: list[tuple[str, PairAssignment, str | None]] = []
+        generated_paths: list[Path] = []
+        if existing_images:
+            for image in existing_images:
+                if image.status == "generating":
+                    assignment = PairAssignment(
+                        design=image.design_filename, pose=image.pose_filename, variation=image.variation
+                    )
+                    pending.append((image.id, assignment, image.provider_job_ref))
+                elif image.status == "passed" and image.generated_path:
+                    generated_paths.append(Path(image.generated_path))
+            job.progress_total = len(existing_images)
+            job.progress_completed = len(existing_images) - len(pending)
+        else:
+            design_names = [Path(p).name for p in job.design_paths]
+            pose_names = [Path(p).name for p in job.pose_paths]
+            assignments = build_pairs(
+                designs=design_names,
+                poses=pose_names,
+                mode=PairingMode(job.pairing_mode),
+                count=job.num_images,
+                min_count=settings.batch_min_images,
+                max_count=settings.batch_max_images,
+            )
+            job.progress_total = len(assignments)
+            job.progress_completed = 0
+            for assignment in assignments:
+                image = GeneratedImage(
+                    batch_job_id=job.id,
+                    design_filename=assignment.design,
+                    pose_filename=assignment.pose,
+                    original_design_path=str(design_by_name[assignment.design]),
+                    original_pose_path=str(pose_by_name[assignment.pose]),
+                    variation=assignment.variation,
+                    status="generating",
+                )
+                db.add(image)
+                db.commit()
+                db.refresh(image)
+                pending.append((image.id, assignment, None))
         db.commit()
 
         # Snapshot the plain values each worker needs up front — ORM objects
@@ -129,29 +194,12 @@ def process_batch_job(job_id: str) -> None:
         # test/deployment default of "mock" would get silently overridden.
         provider = job.provider
 
-        pending: list[tuple[str, PairAssignment]] = []
-        for assignment in assignments:
-            image = GeneratedImage(
-                batch_job_id=job.id,
-                design_filename=assignment.design,
-                pose_filename=assignment.pose,
-                original_design_path=str(design_by_name[assignment.design]),
-                original_pose_path=str(pose_by_name[assignment.pose]),
-                variation=assignment.variation,
-                status="generating",
-            )
-            db.add(image)
-            db.commit()
-            db.refresh(image)
-            pending.append((image.id, assignment))
-
-        generated_paths: list[Path] = []
         job_cancelled = False
 
         max_workers = max(1, min(settings.batch_concurrency, len(pending) or 1))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures: dict[Future, str] = {}
-            for image_id, assignment in pending:
+            for image_id, assignment, resume_job_ref in pending:
                 out_path = storage.generated_image_path(job.id, image_id)
                 future = executor.submit(
                     _generate_one,
@@ -168,6 +216,7 @@ def process_batch_job(job_id: str) -> None:
                     agent,
                     image_service,
                     quality,
+                    resume_job_ref,
                 )
                 futures[future] = image_id
 
@@ -245,3 +294,23 @@ def process_batch_job(job_id: str) -> None:
         raise
     finally:
         db.close()
+
+
+def resume_orphaned_batch_jobs() -> None:
+    """Called once at app startup (see main.py's lifespan, gated behind
+    settings.resume_orphaned_batch_jobs_on_startup). A BatchJob still marked
+    "processing" at this point was being run by a now-dead process — the
+    process that would ever move it out of "processing" no longer exists,
+    so it's orphaned, not actually in progress. Reprocessing it is safe:
+    process_batch_job resumes from the GeneratedImage rows already
+    persisted (and recovers any in-flight Gemini Batch API job) instead of
+    starting the whole job over."""
+    db = SessionLocal()
+    try:
+        orphaned_ids = [job.id for job in db.query(BatchJob).filter(BatchJob.status == "processing").all()]
+    finally:
+        db.close()
+
+    for job_id in orphaned_ids:
+        logger.info("Resuming orphaned batch job %s after restart", job_id)
+        threading.Thread(target=process_batch_job, args=(job_id,), daemon=True).start()

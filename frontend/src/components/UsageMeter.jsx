@@ -54,7 +54,7 @@ export default function UsageMeter() {
         <p className="mt-1 text-xs text-neutral-400">No monthly budget configured — showing running total.</p>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-3">
         <div className="rounded-lg bg-neutral-50 p-2.5">
           <p className="text-sm font-semibold text-neutral-900">{summary.total_requests}</p>
           <p className="text-[11px] text-neutral-500">Requests</p>
@@ -70,6 +70,18 @@ export default function UsageMeter() {
         <div className="rounded-lg bg-neutral-50 p-2.5">
           <p className="text-sm font-semibold text-neutral-900">{summary.gpt_oauth_requests ?? 0}</p>
           <p className="text-[11px] text-neutral-500">ChatGPT OAuth images</p>
+        </div>
+        <div className="rounded-lg bg-neutral-50 p-2.5">
+          <p className="text-sm font-semibold text-neutral-900">
+            {summary.gemini_api_requests ?? 0} · ${(summary.gemini_api_cost_usd ?? 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-neutral-500">Gemini API images</p>
+        </div>
+        <div className="rounded-lg bg-neutral-50 p-2.5">
+          <p className="text-sm font-semibold text-neutral-900">
+            {summary.gemini_batch_api_requests ?? 0} · ${(summary.gemini_batch_api_cost_usd ?? 0).toFixed(2)}
+          </p>
+          <p className="text-[11px] text-neutral-500">Gemini Batch API images</p>
         </div>
       </div>
     </div>

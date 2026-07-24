@@ -408,3 +408,215 @@ def test_generate_with_quality_gate_appends_feedback_to_retry_prompt(tmp_path, t
     assert result.prompt_used.startswith("base prompt")
     assert "soft studio lighting" in result.prompt_used
     assert "hand and finger anatomy" not in result.prompt_used  # anatomy passed on attempt 1, no feedback needed
+
+
+def _distinct_png_bytes(color: tuple[int, int, int]) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (4, 4), color=color).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_resolve_retry_budgets_uses_gpt_override():
+    settings = _settings(
+        quality_max_retries=0,
+        near_duplicate_max_retries=0,
+        gpt_quality_max_retries=3,
+        gpt_near_duplicate_max_retries=3,
+    )
+    quality = QualityService(settings)
+
+    assert quality._resolve_retry_budgets("gpt") == (3, 3)
+
+
+def test_resolve_retry_budgets_uses_gemini_api_override():
+    settings = _settings(
+        quality_max_retries=5,
+        near_duplicate_max_retries=5,
+        gemini_api_quality_max_retries=0,
+        gemini_api_near_duplicate_max_retries=0,
+    )
+    quality = QualityService(settings)
+
+    assert quality._resolve_retry_budgets("gemini_api") == (0, 0)
+
+
+def test_resolve_retry_budgets_falls_back_to_generic_for_other_providers():
+    settings = _settings(
+        quality_max_retries=2,
+        near_duplicate_max_retries=1,
+        gpt_quality_max_retries=99,
+        gemini_api_quality_max_retries=99,
+    )
+    quality = QualityService(settings)
+
+    assert quality._resolve_retry_budgets("agy") == (2, 1)
+    assert quality._resolve_retry_budgets("gemini_batch_api") == (2, 1)
+    assert quality._resolve_retry_budgets(None) == (2, 1)  # falls back to settings.image_provider ("mock")
+
+
+def test_generate_with_quality_gate_retries_3x_for_gpt_provider(tmp_path, monkeypatch):
+    """The actual ask: ChatGPT gets 3 retries on a never-passing score,
+    independent of the generic quality_max_retries (set to 0 here to prove
+    it's the gpt_* override doing the work, not the generic budget)."""
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(_distinct_png_bytes((0, 0, 255)))
+    pose.write_bytes(_distinct_png_bytes((255, 0, 0)))
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=101, quality_max_retries=0, gpt_quality_max_retries=3)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    calls = {"n": 0}
+
+    def fake_generate_image(design_path, pose_path, prompt, variation, out_path, attempt=1, **kwargs):
+        calls["n"] += 1
+        out_path.write_bytes(_distinct_png_bytes((0, 255, 0)))
+        return out_path, "image/png"
+
+    monkeypatch.setattr(image_service, "generate_image", fake_generate_image)
+
+    result = quality.generate_with_quality_gate(
+        image_service, design, pose, "prompt", out, variation=1, provider="gpt"
+    )
+
+    assert result.passed is False
+    assert result.attempt == 1 + settings.gpt_quality_max_retries
+    assert calls["n"] == 1 + settings.gpt_quality_max_retries
+
+
+def test_generate_with_quality_gate_never_retries_for_gemini_api_provider(tmp_path, monkeypatch):
+    """The other half of the ask: the billed Gemini API key gets exactly one
+    attempt, even though the generic quality_max_retries would allow 5."""
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(_distinct_png_bytes((0, 0, 255)))
+    pose.write_bytes(_distinct_png_bytes((255, 0, 0)))
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=101, quality_max_retries=5, gemini_api_quality_max_retries=0)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    calls = {"n": 0}
+
+    def fake_generate_image(design_path, pose_path, prompt, variation, out_path, attempt=1, **kwargs):
+        calls["n"] += 1
+        out_path.write_bytes(_distinct_png_bytes((0, 255, 0)))
+        return out_path, "image/png"
+
+    monkeypatch.setattr(image_service, "generate_image", fake_generate_image)
+
+    result = quality.generate_with_quality_gate(
+        image_service, design, pose, "prompt", out, variation=1, provider="gemini_api"
+    )
+
+    assert result.passed is False
+    assert result.attempt == 1
+    assert calls["n"] == 1
+
+
+def test_generate_with_quality_gate_recovers_via_resume_job_ref_without_resubmitting(tmp_path, monkeypatch):
+    """The resume feature: a previously-submitted Gemini Batch API job
+    should be recovered on attempt 1 instead of starting a fresh
+    (separately-billed) generation."""
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(_distinct_png_bytes((0, 0, 255)))
+    pose.write_bytes(_distinct_png_bytes((255, 0, 0)))
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=0)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    recover_calls = []
+
+    def fake_recover(job_ref, out_path, width=None, height=None):
+        recover_calls.append(job_ref)
+        out_path.write_bytes(_distinct_png_bytes((0, 255, 0)))
+        return out_path, "image/png"
+
+    def fail_if_called(*a, **kw):
+        raise AssertionError("generate_image must not be called when recovery succeeds")
+
+    monkeypatch.setattr(image_service, "recover_gemini_batch_image", fake_recover)
+    monkeypatch.setattr(image_service, "generate_image", fail_if_called)
+
+    result = quality.generate_with_quality_gate(
+        image_service, design, pose, "prompt", out, variation=1,
+        provider="gemini_batch_api", resume_job_ref="batches/already-submitted",
+    )
+
+    assert recover_calls == ["batches/already-submitted"]
+    assert result.passed is True
+    assert result.attempt == 1
+
+
+def test_generate_with_quality_gate_falls_back_to_fresh_generation_when_recovery_fails(tmp_path, monkeypatch):
+    """If the recovered job expired/failed on Google's side, the image must
+    still get generated — not left stuck — via a normal fresh submission."""
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(_distinct_png_bytes((0, 0, 255)))
+    pose.write_bytes(_distinct_png_bytes((255, 0, 0)))
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=0)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    generate_calls = {"n": 0}
+
+    def fake_recover(job_ref, out_path, width=None, height=None):
+        raise RuntimeError("Gemini Batch API job batches/expired failed: expired")
+
+    def fake_generate_image(design_path, pose_path, prompt, variation, out_path, attempt=1, **kwargs):
+        generate_calls["n"] += 1
+        out_path.write_bytes(_distinct_png_bytes((0, 255, 0)))
+        return out_path, "image/png"
+
+    monkeypatch.setattr(image_service, "recover_gemini_batch_image", fake_recover)
+    monkeypatch.setattr(image_service, "generate_image", fake_generate_image)
+
+    result = quality.generate_with_quality_gate(
+        image_service, design, pose, "prompt", out, variation=1,
+        provider="gemini_batch_api", resume_job_ref="batches/expired",
+    )
+
+    assert generate_calls["n"] == 1
+    assert result.passed is True
+
+
+def test_generate_with_quality_gate_forwards_on_job_submitted_to_generate_image(tmp_path, monkeypatch):
+    design = tmp_path / "d.png"
+    pose = tmp_path / "p.png"
+    design.write_bytes(_distinct_png_bytes((0, 0, 255)))
+    pose.write_bytes(_distinct_png_bytes((255, 0, 0)))
+    out = tmp_path / "out.png"
+
+    settings = _settings(quality_pass_threshold=0)
+    quality = QualityService(settings)
+    image_service = ImageService(settings)
+
+    captured = {}
+
+    def fake_generate_image(design_path, pose_path, prompt, variation, out_path, attempt=1, on_job_submitted=None, **kwargs):
+        captured["on_job_submitted"] = on_job_submitted
+        out_path.write_bytes(_distinct_png_bytes((0, 255, 0)))
+        return out_path, "image/png"
+
+    monkeypatch.setattr(image_service, "generate_image", fake_generate_image)
+
+    marker = lambda job_ref: None  # noqa: E731 - identity sentinel for the assertion below
+
+    quality.generate_with_quality_gate(
+        image_service, design, pose, "prompt", out, variation=1, on_job_submitted=marker
+    )
+
+    assert captured["on_job_submitted"] is marker

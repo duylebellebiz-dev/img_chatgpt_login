@@ -84,6 +84,13 @@ class GeneratedImage(Base):
     passed: Mapped[bool] = mapped_column(default=False)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending|generating|passed|needs_review|cancelled
+    # Set only for the "gemini_batch_api" provider, right after Google
+    # accepts the submitted job (before the poll loop starts) — lets a
+    # restarted backend reconnect to a job still running on Google's side
+    # instead of losing it (or paying to resubmit it) if this process dies
+    # mid-poll. See gemini_batch_api_service.py's on_job_submitted callback
+    # and batch_tasks.process_batch_job's resume path.
+    provider_job_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)

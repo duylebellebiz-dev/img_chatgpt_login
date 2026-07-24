@@ -1,5 +1,6 @@
 """Generate and edit images through Gemini OAuth using Antigravity CLI."""
 
+from collections.abc import Callable
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -7,10 +8,12 @@ from PIL import Image, ImageDraw, ImageFont
 from app.config import Settings, get_settings
 from app.services import usage_service
 from app.services.agy_service import generate_via_agy
+from app.services.gemini_api_service import generate_via_gemini_api
+from app.services.gemini_batch_api_service import generate_via_gemini_batch_api, recover_via_gemini_batch_api
 from app.services.gpt_service import generate_via_gpt_oauth
 from app.services.media_utils import detect_image_mime_type, extension_for_mime_type, fit_to_size
 
-_VALID_PROVIDERS = {"agy", "gpt", "mock"}
+_VALID_PROVIDERS = {"agy", "gpt", "gemini_api", "gemini_batch_api", "mock"}
 
 
 def resolve_provider(provider: str | None, settings: Settings) -> str:
@@ -133,10 +136,29 @@ class ImageService:
         # argument (see resolve_provider) can still pick a different one.
         resolve_provider(None, self.settings)
 
-    def _request_image(self, prompt: str, references: list[Path], operation: str, provider: str) -> bytes:
+    def _request_image(
+        self,
+        prompt: str,
+        references: list[Path],
+        operation: str,
+        provider: str,
+        on_job_submitted: Callable[[str], None] | None = None,
+    ) -> bytes:
         if provider == "gpt":
             image_bytes = generate_via_gpt_oauth(prompt, references, self.settings)
             usage_service.record_gpt_oauth_usage(operation, self.settings.gpt_oauth_model, image_count=1)
+        elif provider == "gemini_api":
+            image_bytes = generate_via_gemini_api(prompt, references, self.settings)
+            usage_service.record_gemini_api_usage(
+                operation, self.settings.gemini_api_model, self.settings, image_count=1
+            )
+        elif provider == "gemini_batch_api":
+            image_bytes = generate_via_gemini_batch_api(
+                prompt, references, self.settings, on_job_submitted=on_job_submitted
+            )
+            usage_service.record_gemini_batch_api_usage(
+                operation, self.settings.gemini_api_model, self.settings, image_count=1
+            )
         else:
             image_bytes = generate_via_agy(prompt, references, self.settings)
             usage_service.record_gemini_oauth_usage(operation, self.settings.agy_image_model, image_count=1)
@@ -153,12 +175,30 @@ class ImageService:
         width: int | None = None,
         height: int | None = None,
         provider: str | None = None,
+        on_job_submitted: Callable[[str], None] | None = None,
     ) -> tuple[Path, str]:
         effective_provider = resolve_provider(provider, self.settings)
         if effective_provider == "mock":
             return _mock_generate(design_path, pose_path, prompt, variation, attempt, out_path, width, height)
         full_prompt = prompt + _COMPOSITING_CONTRACT + _QUALITY_SUFFIX + _NO_TEXT_SUFFIX
-        image_bytes = self._request_image(full_prompt, [pose_path, design_path], "generate_image", effective_provider)
+        image_bytes = self._request_image(
+            full_prompt, [pose_path, design_path], "generate_image", effective_provider, on_job_submitted=on_job_submitted
+        )
+        return _save_image_bytes(image_bytes, out_path, width, height)
+
+    def recover_gemini_batch_image(
+        self,
+        job_ref: str,
+        out_path: Path,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> tuple[Path, str]:
+        """Reconnects to a "gemini_batch_api" job submitted by an earlier,
+        now-dead process (see the on_job_submitted callback in generate_image
+        above) instead of starting a fresh, separately-billed generation.
+        No usage record here — the original submission already recorded the
+        billed image_count; this call doesn't create a new charge."""
+        image_bytes = recover_via_gemini_batch_api(job_ref, self.settings)
         return _save_image_bytes(image_bytes, out_path, width, height)
 
     def edit_image(

@@ -79,6 +79,8 @@ const DETAIL_PROMPT_TEMPLATES = [
 const IMAGE_PROVIDERS = [
   { value: "agy", label: "Gemini", help: "Free via Antigravity CLI OAuth." },
   { value: "gpt", label: "ChatGPT", help: "Free via ChatGPT OAuth (requires ima2 serve running)." },
+  { value: "gemini_api", label: "Gemini API", help: "Billed API key. Generates each image instantly." },
+  { value: "gemini_batch_api", label: "Gemini Batch API", help: "~50% cheaper, same key — slower, not instant." },
 ];
 
 const PAIRING_MODES = [
@@ -237,7 +239,7 @@ export default function UploadForm({ onSubmit, submitting }) {
 
       <div>
         <label className="block text-sm font-medium text-neutral-900">Image provider</label>
-        <div className="mt-1.5 grid grid-cols-2 gap-2">
+        <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {IMAGE_PROVIDERS.map((p) => (
             <button
               key={p.value}
