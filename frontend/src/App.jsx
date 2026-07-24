@@ -9,7 +9,7 @@ import SocialScheduling from "./components/SocialScheduling";
 import CampaignManager from "./components/CampaignManager";
 import Dashboard from "./components/Dashboard";
 import { AlertIcon, CalendarIcon, ChartIcon, FolderIcon, ImagesIcon, SparklesIcon } from "./components/icons";
-import { cancelBatchJob, createBatchJob, getBatchJob, getCurrentUser, logout } from "./api";
+import { cancelBatchJob, createBatchJob, getBatchJob, getCurrentUser, logout, pauseBatchJob, resumeBatchJob } from "./api";
 
 const POLL_INTERVAL_MS = 2000;
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
@@ -54,6 +54,8 @@ function AuthenticatedApp({ user, onLogout }) {
   const [tab, setTab] = useState(initialTab);
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const [job, setJob] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [submitNotice, setSubmitNotice] = useState(null);
@@ -128,6 +130,36 @@ function AuthenticatedApp({ user, onLogout }) {
     }
   }
 
+  async function handlePause(jobId) {
+    setPausing(true);
+    setSubmitError(null);
+    try {
+      await pauseBatchJob(jobId);
+      // The polling interval started in handleSubmit keeps running — "paused"
+      // isn't a terminal status — so it'll keep picking up any images still
+      // finishing an in-flight attempt. This immediate refresh just avoids a
+      // beat of stale UI before the next poll tick.
+      setJob(await getBatchJob(jobId));
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setPausing(false);
+    }
+  }
+
+  async function handleResume(jobId) {
+    setResuming(true);
+    setSubmitError(null);
+    try {
+      await resumeBatchJob(jobId);
+      setJob(await getBatchJob(jobId));
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setResuming(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50/60 via-white to-white">
       <header className="border-b border-neutral-200/80 bg-white/80 backdrop-blur">
@@ -185,7 +217,15 @@ function AuthenticatedApp({ user, onLogout }) {
             <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{submitNotice}</p>
           )}
 
-          <JobStatus job={job} cancelling={cancelling} onCancel={handleCancel} />
+          <JobStatus
+            job={job}
+            cancelling={cancelling}
+            onCancel={handleCancel}
+            pausing={pausing}
+            onPause={handlePause}
+            resuming={resuming}
+            onResume={handleResume}
+          />
 
           <RecentBatchJobs onSelectJob={setJob} />
         </div>

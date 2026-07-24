@@ -5,6 +5,7 @@ import { AlertIcon, Spinner } from "./icons";
 const STATUS_STYLES = {
   pending: "bg-neutral-100 text-neutral-600",
   processing: "bg-amber-100 text-amber-800",
+  paused: "bg-sky-100 text-sky-800",
   completed: "bg-emerald-100 text-emerald-800",
   failed: "bg-red-100 text-red-700",
   cancelled: "bg-neutral-200 text-neutral-700",
@@ -131,9 +132,14 @@ export default function RecentBatchJobs({ onSelectJob }) {
               <button
                 type="button"
                 onClick={() => handleDelete(job.job_id)}
-                disabled={deletingId === job.job_id || job.status === "pending" || job.status === "processing"}
+                disabled={
+                  deletingId === job.job_id ||
+                  job.status === "pending" ||
+                  job.status === "processing" ||
+                  job.status === "paused"
+                }
                 title={
-                  job.status === "pending" || job.status === "processing"
+                  job.status === "pending" || job.status === "processing" || job.status === "paused"
                     ? "Cancel this job before deleting it"
                     : "Delete this job and its Cloudinary images"
                 }

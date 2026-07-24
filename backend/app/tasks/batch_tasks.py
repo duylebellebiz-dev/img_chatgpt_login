@@ -23,13 +23,28 @@ def _refresh_job(db, job_id: str) -> BatchJob | None:
 
 
 def _job_allows_processing_isolated(job_id: str) -> bool:
-    """Cancellation check safe to call from a worker thread: opens and closes
-    its own session rather than touching the main thread's `db`, since a
-    SQLAlchemy Session is not safe to share across threads."""
+    """Cancellation/pause check safe to call from a worker thread: opens and
+    closes its own session rather than touching the main thread's `db`,
+    since a SQLAlchemy Session is not safe to share across threads. "paused"
+    stops generation the same cooperative way "cancelled" does — the
+    difference is handled by the caller (process_batch_job), which leaves a
+    paused image's row as "generating" instead of marking it "cancelled" so
+    /resume can pick it back up."""
     session = SessionLocal()
     try:
         job = session.get(BatchJob, job_id)
-        return bool(job is not None and job.status != "cancelled")
+        return bool(job is not None and job.status not in ("cancelled", "paused"))
+    finally:
+        session.close()
+
+
+def _job_status_isolated(job_id: str) -> str | None:
+    """One-off status read from a worker/main-thread-adjacent context — see
+    _job_allows_processing_isolated for why this opens its own session."""
+    session = SessionLocal()
+    try:
+        job = session.get(BatchJob, job_id)
+        return job.status if job is not None else None
     finally:
         session.close()
 
@@ -195,11 +210,41 @@ def process_batch_job(job_id: str) -> None:
         provider = job.provider
 
         job_cancelled = False
+        job_paused = False
 
         max_workers = max(1, min(settings.batch_concurrency, len(pending) or 1))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures: dict[Future, str] = {}
             for image_id, assignment, resume_job_ref in pending:
+                try:
+                    design_path = design_by_name[assignment.design]
+                    pose_path = pose_by_name[assignment.pose]
+                except KeyError as exc:
+                    # A single unresolvable reference used to abort this whole
+                    # loop, discarding every future already submitted (their
+                    # generations kept running in the background — the
+                    # ThreadPoolExecutor `with` block waits for them on exit
+                    # — but this loop never reached the result-processing
+                    # loop below, so none of that work ever got saved: those
+                    # rows stayed "generating" forever and the job died for
+                    # every other image too). Skip just this one instead.
+                    logger.error(
+                        "Batch job %s: could not resolve reference image %s for "
+                        "image=%s — marking this image failed instead of "
+                        "aborting the whole job.",
+                        job_id,
+                        exc,
+                        image_id,
+                        exc_info=True,
+                    )
+                    image = db.get(GeneratedImage, image_id)
+                    if image is not None:
+                        image.status = "needs_review"
+                        image.passed = False
+                        image.prompt_used = f"Skipped: reference image not found ({exc})"
+                        job.progress_completed += 1
+                        db.commit()
+                    continue
                 out_path = storage.generated_image_path(job.id, image_id)
                 future = executor.submit(
                     _generate_one,
@@ -210,8 +255,8 @@ def process_batch_job(job_id: str) -> None:
                     provider,
                     image_id,
                     assignment,
-                    design_by_name[assignment.design],
-                    pose_by_name[assignment.pose],
+                    design_path,
+                    pose_path,
                     out_path,
                     agent,
                     image_service,
@@ -226,11 +271,16 @@ def process_batch_job(job_id: str) -> None:
                     outcome = future.result()
                 except CancelledError:
                     # Never started because we cancelled it after an earlier
-                    # image detected cancellation — its row is still "generating".
-                    image = db.get(GeneratedImage, image_id)
-                    image.passed = False
-                    image.status = "cancelled"
-                    job_cancelled = True
+                    # image detected cancellation/pause — its row is still
+                    # "generating". On pause, leave it that way (see below);
+                    # on cancel, mark it "cancelled" as before.
+                    if _job_status_isolated(job_id) == "paused":
+                        job_paused = True
+                    else:
+                        image = db.get(GeneratedImage, image_id)
+                        image.passed = False
+                        image.status = "cancelled"
+                        job_cancelled = True
                     db.commit()
                     continue
                 image = db.get(GeneratedImage, outcome.image_id)
@@ -243,9 +293,18 @@ def process_batch_job(job_id: str) -> None:
                     image.attempts = outcome.result.attempt
 
                 if outcome.cancelled:
-                    image.passed = False
-                    image.status = "cancelled"
-                    job_cancelled = True
+                    if _job_status_isolated(job_id) == "paused":
+                        # Leave this row's status as "generating" (its
+                        # default, untouched here) instead of "cancelled" —
+                        # /resume re-queues anything still "generating", the
+                        # same recovery path used for a job orphaned by a
+                        # backend restart (see process_batch_job's docstring
+                        # comment above the `existing_images` query).
+                        job_paused = True
+                    else:
+                        image.passed = False
+                        image.status = "cancelled"
+                        job_cancelled = True
                     for other_future in futures:
                         other_future.cancel()
                 else:
@@ -263,6 +322,13 @@ def process_batch_job(job_id: str) -> None:
                         generated_paths.append(outcome.result.image_path)
                     job.progress_completed += 1
                 db.commit()
+
+        if job_paused:
+            # job.status is already "paused" (set by the /pause endpoint) —
+            # leave it as-is rather than overwriting it to "cancelled" or
+            # "completed". Whatever's left in "generating" gets picked up
+            # again the next time /resume calls this function.
+            return
 
         if job_cancelled:
             job = _refresh_job(db, job_id)

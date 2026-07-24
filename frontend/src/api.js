@@ -76,6 +76,24 @@ export async function cancelBatchJob(jobId) {
   return body;
 }
 
+export async function pauseBatchJob(jobId) {
+  const res = await fetch(`${BASE_URL}/api/batch/${jobId}/pause`, { method: "POST", credentials: "include" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body.detail || "Failed to pause batch job");
+  }
+  return body;
+}
+
+export async function resumeBatchJob(jobId) {
+  const res = await fetch(`${BASE_URL}/api/batch/${jobId}/resume`, { method: "POST", credentials: "include" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body.detail || "Failed to resume batch job");
+  }
+  return body;
+}
+
 export function downloadUrl(jobId) {
   return `${BASE_URL}/api/batch/${jobId}/download`;
 }

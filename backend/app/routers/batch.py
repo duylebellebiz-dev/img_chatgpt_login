@@ -238,6 +238,51 @@ def cancel_batch_job(
     )
 
 
+@router.post("/{job_id}/pause", response_model=BatchJobCancelResponse)
+def pause_batch_job(
+    job_id: str, db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)
+) -> BatchJobCancelResponse:
+    """Cooperative pause — process_batch_job's worker threads notice the
+    status flip (see _job_allows_processing_isolated) and stop starting new
+    generation attempts, but a request already in flight finishes first.
+    Unlike /cancel, images still "generating" when the job stops are left
+    untouched rather than marked "cancelled", so /resume can pick them back
+    up."""
+    job = _get_owned_batch_job(db, job_id, user_id)
+    if job.status != "processing":
+        raise HTTPException(status_code=409, detail=f"Batch job is {job.status}, not processing — cannot pause")
+
+    job.status = "paused"
+    db.commit()
+    return BatchJobCancelResponse(
+        job_id=job.id,
+        status=job.status,
+        message="Batch image generation paused.",
+    )
+
+
+@router.post("/{job_id}/resume", response_model=BatchJobCancelResponse)
+def resume_batch_job(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+) -> BatchJobCancelResponse:
+    """Re-launches process_batch_job, which resumes from the GeneratedImage
+    rows already persisted — same recovery path used for a job orphaned by a
+    backend restart (see resume_orphaned_batch_jobs)."""
+    job = _get_owned_batch_job(db, job_id, user_id)
+    if job.status != "paused":
+        raise HTTPException(status_code=409, detail=f"Batch job is {job.status}, not paused — nothing to resume")
+
+    background_tasks.add_task(process_batch_job, job.id)
+    return BatchJobCancelResponse(
+        job_id=job.id,
+        status=job.status,
+        message="Resuming batch image generation.",
+    )
+
+
 @router.get("/{job_id}/download")
 def download_batch_job(
     job_id: str,
@@ -268,7 +313,7 @@ def delete_batch_job(
     user_id: str = Depends(get_current_user_id),
 ) -> dict:
     job = _get_owned_batch_job(db, job_id, user_id)
-    if job.status in {"pending", "processing"}:
+    if job.status in {"pending", "processing", "paused"}:
         raise HTTPException(status_code=409, detail="Cancel this job before deleting it")
     if _is_referenced_by_scheduled_posts(db, job):
         raise HTTPException(

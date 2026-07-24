@@ -4,14 +4,17 @@ import { AlertIcon, CheckCircleIcon, DownloadIcon, Spinner } from "./icons";
 const STATUS_STYLES = {
   pending: "bg-neutral-100 text-neutral-600",
   processing: "bg-amber-100 text-amber-800",
+  paused: "bg-sky-100 text-sky-800",
   completed: "bg-emerald-100 text-emerald-800",
   failed: "bg-red-100 text-red-700",
   cancelled: "bg-neutral-200 text-neutral-700",
 };
 
-export default function JobStatus({ job, cancelling, onCancel }) {
+export default function JobStatus({ job, cancelling, onCancel, pausing, onPause, resuming, onResume }) {
   if (!job) return null;
-  const canCancel = job.status === "pending" || job.status === "processing";
+  const canCancel = job.status === "pending" || job.status === "processing" || job.status === "paused";
+  const canPause = job.status === "processing";
+  const canResume = job.status === "paused";
   const isActive = job.status === "pending" || job.status === "processing";
   const pct = job.progress_total > 0 ? Math.round((job.progress_completed / job.progress_total) * 100) : 0;
 
@@ -29,6 +32,26 @@ export default function JobStatus({ job, cancelling, onCancel }) {
             </span>
           </div>
           <div className="flex items-center gap-2.5">
+            {canPause && (
+              <button
+                type="button"
+                onClick={() => onPause?.(job.job_id)}
+                disabled={pausing}
+                className="rounded-lg border border-sky-200 px-3.5 py-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-50 disabled:opacity-50"
+              >
+                {pausing ? "Pausing..." : "Pause"}
+              </button>
+            )}
+            {canResume && (
+              <button
+                type="button"
+                onClick={() => onResume?.(job.job_id)}
+                disabled={resuming}
+                className="rounded-lg bg-sky-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-700 disabled:opacity-50"
+              >
+                {resuming ? "Resuming..." : "Continue"}
+              </button>
+            )}
             {canCancel && (
               <button
                 type="button"
