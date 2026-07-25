@@ -110,6 +110,62 @@ def test_reachable_threshold_marks_passed(db_session, tiny_png_bytes, tmp_path, 
         assert img.attempts == 1
 
 
+def test_gemini_batch_api_still_exports_a_failing_image_above_hard_failure_threshold(
+    db_session, tiny_png_bytes, tmp_path, settings_override, monkeypatch
+):
+    """gemini_batch_api runs with 0 auto-retries, so a failing image is a
+    dead end — unlike other providers (see
+    test_unreachable_threshold_discards_failing_images_from_zip_but_keeps_db_row),
+    it still gets exported to the ZIP as long as its score clears
+    quality_hard_failure_threshold, so a human can review/pick from it
+    instead of every miss being silently discarded."""
+    from app.models.db_models import GeneratedImage
+    from app.services.image_service import ImageService
+    from app.tasks.batch_tasks import process_batch_job
+
+    settings_override(
+        quality_pass_threshold=101,  # never passes
+        quality_max_retries=0,
+        quality_hard_failure_threshold=30,  # mock scores are always 65-100 (see _mock_score), well above this
+    )
+    job = _make_job(db_session, tiny_png_bytes, tmp_path, num_images=2)
+    job.provider = "gemini_batch_api"
+    db_session.commit()
+
+    # Different from design.png/pose.png's bytes (both write tiny_png_bytes,
+    # see _make_job) so is_near_duplicate_image doesn't flag this as an
+    # unedited copy of a reference and fail it before scoring — same
+    # technique as test_resume_recovers_gemini_batch_api_job_instead_of_resubmitting.
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (4, 4), color=(0, 255, 0)).save(buf, format="PNG")
+    generated_bytes = buf.getvalue()
+
+    def fake_generate(self, design_path, pose_path, prompt, variation, out_path, **kwargs):
+        out_path.write_bytes(generated_bytes)
+        return out_path, "image/png"
+
+    monkeypatch.setattr(ImageService, "generate_image", fake_generate)
+
+    process_batch_job(job.id)
+
+    db_session.refresh(job)
+    images = db_session.query(GeneratedImage).filter_by(batch_job_id=job.id).all()
+
+    assert job.status == "completed"
+    assert len(images) == 2
+    for img in images:
+        assert img.status == "needs_review"
+        assert img.passed is False
+        assert img.score > 30
+
+    with zipfile.ZipFile(job.zip_path) as zf:
+        assert len(zf.namelist()) == 2  # exported despite failing, unlike other providers
+
+
 def test_cancelled_job_is_not_processed(db_session, tiny_png_bytes, tmp_path, settings_override):
     from app.models.db_models import GeneratedImage
     from app.tasks.batch_tasks import process_batch_job

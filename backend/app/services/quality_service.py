@@ -51,7 +51,9 @@ _VISION_RUBRIC = (
     "photo to score), REFERENCE 1 (the hand pose the candidate was supposed to "
     "preserve), and REFERENCE 2 (the nail design the candidate was supposed to "
     "apply). Score the CANDIDATE from 0-100 on each of: "
-    "anatomy (hand/finger correctness — no distorted, missing, or extra fingers); "
+    "anatomy (hand/finger correctness — no distorted, missing, or extra fingers, "
+    "and EXACTLY ONE hand visible anywhere in the frame — no extra/duplicate "
+    "hands, no floating third hand, no extra arm or wrist); "
     "pose_fidelity (the CANDIDATE's hand identity, finger positions, camera "
     "angle, and framing must match REFERENCE 1 — not merely look like some "
     "plausible hand); "
@@ -62,23 +64,40 @@ _VISION_RUBRIC = (
     "CRITICAL COMPOSITING CHECK: if the CANDIDATE is essentially an unedited "
     "copy of REFERENCE 1 (nail design not actually changed to match REFERENCE 2) "
     "or of REFERENCE 2 (wrong hand/pose — not the one from REFERENCE 1), that is "
-    "a hard compositing failure: score anatomy, pose_fidelity, AND nail_accuracy "
-    "no higher than 10, regardless of how good the photo looks on its own. THIS "
-    "STILL APPLIES if only the background, lighting, or framing was redone while "
-    "the hand, fingers, pose, and nail design themselves were left essentially "
-    "unchanged from REFERENCE 1 or REFERENCE 2 — a new background alone is not a "
-    "real edit and must not be scored as one. "
+    "a hard compositing failure. THIS STILL APPLIES if only the background, "
+    "lighting, or framing was redone while the hand, fingers, pose, and nail "
+    "design themselves were left essentially unchanged from REFERENCE 1 or "
+    "REFERENCE 2 — a new background alone is not a real edit and must not be "
+    "scored as one. A strong, unambiguous tell: if the CANDIDATE contains any "
+    "interface element, button, badge, watermark, or app-chrome artifact "
+    "(e.g. a 'Save' button, a social-media UI overlay, a screenshot frame) "
+    "that also appears in REFERENCE 1 or REFERENCE 2, that alone proves the "
+    "CANDIDATE is a copy of that reference, regardless of how different the "
+    "rest of the photo looks. "
     "If the image contains ANY visible text, letters, numbers, captions, "
-    "watermarks, or logos anywhere in the frame, that is also a hard defect: "
-    "score both realism and marketing_quality no higher than 20, regardless of "
-    "how good the rest of the image looks. "
+    "watermarks, logos, or UI/app elements anywhere in the frame, that is "
+    "also a hard defect on its own, independent of the compositing check "
+    "above. "
+    "If the image shows more than one hand — an extra/duplicate hand, a "
+    "second hand partially visible at the edge of the frame, or any hand "
+    "that isn't the single hand from REFERENCE 1 — that is also a hard "
+    "defect. "
+    "ANY ONE of the three hard defects above (compositing copy, visible "
+    "text/watermark/UI element, or extra hand) means this is a failed "
+    "generation, full stop — it must not be scored as a good photo that "
+    "merely has one flaw. When any of them applies, score EVERY SINGLE ONE "
+    "of the seven criteria no higher than 15, even criteria that seem "
+    "unaffected (e.g. lighting or background looking fine does not redeem a "
+    "compositing failure or a visible watermark) — do not let a high score "
+    "on unrelated criteria average out a hard defect into a passing score. "
     "Respond with ONLY a JSON object like "
     '{"anatomy": 90, "pose_fidelity": 88, "nail_accuracy": 85, "lighting": 88, '
     '"background": 80, "realism": 92, "marketing_quality": 87}, no other text.'
 )
 
 _CRITERION_FEEDBACK = {
-    "anatomy": "the hand and finger anatomy must be accurate — no distorted, missing, or extra fingers",
+    "anatomy": "the hand and finger anatomy must be accurate — no distorted, missing, or extra fingers, and "
+    "exactly one hand must be visible in the frame — no extra or duplicate hands",
     "pose_fidelity": "the output must keep the exact hand identity, finger positions, camera angle, and framing "
     "from the hand pose reference image — it must not drift toward a different hand or pose",
     "nail_accuracy": "the nail design must match the reference design image precisely in color, pattern, and shape, "
@@ -160,14 +179,19 @@ class QualityService:
 
     def _resolve_retry_budgets(self, provider: str | None) -> tuple[int, int]:
         """Per-provider override for (quality_max_retries,
-        near_duplicate_max_retries) — see the gpt_*/gemini_api_* settings in
-        config.py. Falls back to the generic pair for every other provider
-        (agy, gemini_batch_api, mock)."""
+        near_duplicate_max_retries) — see the gpt_*/gemini_api_*/
+        gemini_batch_api_* settings in config.py. Falls back to the generic
+        pair for every other provider (agy, mock)."""
         effective_provider = resolve_provider(provider, self.settings)
         if effective_provider == "gpt":
             return self.settings.gpt_quality_max_retries, self.settings.gpt_near_duplicate_max_retries
         if effective_provider == "gemini_api":
             return self.settings.gemini_api_quality_max_retries, self.settings.gemini_api_near_duplicate_max_retries
+        if effective_provider == "gemini_batch_api":
+            return (
+                self.settings.gemini_batch_api_quality_max_retries,
+                self.settings.gemini_batch_api_near_duplicate_max_retries,
+            )
         return self.settings.quality_max_retries, self.settings.near_duplicate_max_retries
 
     def score_image(

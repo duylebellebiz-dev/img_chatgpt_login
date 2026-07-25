@@ -7,12 +7,35 @@ from app.services import gemini_batch_api_service
 def _settings(**overrides) -> Settings:
     defaults = dict(
         gemini_api_key="test-key",
-        gemini_api_model="nano-banana-2",
+        # A different alias than gemini_api_model's own default, so a test
+        # asserting on the resolved model in the submitted request is
+        # actually exercising gemini_batch_api_model — not silently passing
+        # because it happens to match gemini_api_model's default too.
+        gemini_api_model="nano-banana-pro",
+        gemini_batch_api_model="nano-banana-2",
         gemini_batch_api_poll_interval_seconds=0,
         gemini_batch_api_timeout_seconds=5,
     )
     defaults.update(overrides)
     return Settings(**defaults)
+
+
+def test_gemini_batch_api_model_defaults_to_gemini_api_models_default_but_is_independently_overridable():
+    """gemini_batch_api_model is its own setting rather than reusing
+    gemini_api_model — currently defaults to the same model (see config.py's
+    comment: side-by-side testing found gemini-2.5-flash-image's batch
+    compositing quality noticeably worse than 3.1's), but must stay
+    independently overridable in case Batch Mode reliability against 3.1
+    becomes a real problem later without wanting to change the sync
+    provider's model too."""
+    default_settings = Settings(gemini_api_key="test-key")
+    assert default_settings.gemini_batch_api_model == default_settings.gemini_api_model
+
+    overridden = Settings(
+        gemini_api_key="test-key", gemini_batch_api_model="gemini-2.5-flash-image"
+    )
+    assert overridden.gemini_batch_api_model == "gemini-2.5-flash-image"
+    assert overridden.gemini_api_model == default_settings.gemini_api_model  # unaffected by the override above
 
 
 def test_generate_via_gemini_batch_api_requires_key():

@@ -155,7 +155,7 @@ def generate_via_gemini_batch_api(
             "cheaper Batch Mode rate)."
         )
 
-    model_id = _resolve_model_id(settings.gemini_api_model)
+    model_id = _resolve_model_id(settings.gemini_batch_api_model)
     job_name = _submit_batch(prompt, reference_paths, model_id, settings)
     if on_job_submitted is not None:
         on_job_submitted(job_name)

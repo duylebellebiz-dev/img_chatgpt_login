@@ -6,6 +6,7 @@ photography style. Claude never generates images itself (see CLAUDE.md #3).
 """
 
 import json
+import threading
 from math import gcd
 
 from app.config import Settings, get_settings
@@ -46,12 +47,47 @@ _SYSTEM_PROMPT = (
     "nail polish color/pattern/finish from Image 2 and apply it to the nails "
     "on the hand from Image 1, without copying Image 2's background, hand, "
     "or composition; the result must be a new merged photo, never an "
-    "unedited copy of either reference image. It must also specify natural/"
-    "soft studio lighting, a minimalist commercial background, and high-end "
-    "advertising photography style, and explicitly instruct that the image "
-    "contain NO text, letters, numbers, captions, watermarks, or logos "
-    "anywhere in the frame. Output ONLY the prompt text, no preamble."
+    "unedited copy of either reference image. It must also explicitly state "
+    "that the output shows EXACTLY ONE hand — the single hand from Image 1, "
+    "in its exact pose — and nothing else: no second/extra/duplicate hand, "
+    "no floating hand or wrist entering the frame from any edge, and no "
+    "hand from Image 2 appearing anywhere in the result. "
+    "CRITICAL COMPOSITING REQUIREMENT (this is the single most common "
+    "failure mode, and every generated image is automatically checked for "
+    "it — a violation gets the image auto-rejected): the output is REQUIRED "
+    "to differ visibly from BOTH Image 1 and Image 2. It must never be "
+    "achievable by simply returning Image 1 as-is, or Image 2 as-is, or "
+    "Image 1 with only the background/lighting swapped while the nails "
+    "themselves stay untouched. The nails in the output MUST show the "
+    "design/color/pattern from Image 2 — not the nails already present in "
+    "Image 1. End the prompt with an explicit, forceful instruction to this "
+    "effect, e.g. 'Do not output Image 1 or Image 2 unmodified or with only "
+    "superficial changes — the nails must be repainted with the exact "
+    "design from Image 2 while keeping the hand from Image 1.' "
+    "It must also specify natural/soft studio lighting, a minimalist "
+    "commercial background, and high-end advertising photography style, "
+    "and explicitly instruct that the image contain NO text, letters, "
+    "numbers, captions, watermarks, or logos anywhere in the frame. Output "
+    "ONLY the prompt text, no preamble."
 )
+
+
+# Cycled locally by AgentService._get_base_prompt to give same-pair
+# variations a visibly different framing/lighting mood without paying for a
+# second Claude call per image — see that method's docstring for why the
+# per-image Claude call it replaces was pure waste in the first place.
+_VARIATION_HINTS = [
+    "center the hand in frame with soft, even frontal studio lighting",
+    "angle the shot slightly from above, with warm directional side lighting",
+    "use a closer three-quarter crop with cool-toned rim lighting for contrast",
+    "widen the frame a touch with diffused overhead lighting for a softer mood",
+    "shoot from a low three-quarter angle with warm, golden-hour-style studio light",
+]
+
+
+def _variation_suffix(variation: int) -> str:
+    hint = _VARIATION_HINTS[(variation - 1) % len(_VARIATION_HINTS)]
+    return f" For this specific variation, {hint}, so it reads as visibly distinct from other variations of the same pair."
 
 
 def _mock_prompt(
@@ -149,6 +185,18 @@ class AgentService:
 
             self._client = anthropic.Anthropic(api_key=self.settings.anthropic_api_key)
 
+        # Caches the one real (non-mock) build_prompt() call per
+        # (description, width, height) for this instance's lifetime — see
+        # _get_base_prompt's docstring. batch_tasks.process_batch_job
+        # creates a fresh AgentService per batch job, so this cache lives
+        # exactly as long as one batch: no cross-job leakage, no unbounded
+        # growth. The lock serializes concurrent first-access from the
+        # ThreadPoolExecutor workers in batch_tasks.py so a whole batch's
+        # worth of images racing in at once triggers exactly one Claude
+        # call, not one per worker that loses the race.
+        self._base_prompt_cache: dict[tuple[str, int | None, int | None], str] = {}
+        self._base_prompt_lock = threading.Lock()
+
     @property
     def is_mock(self) -> bool:
         return self._client is None
@@ -165,27 +213,47 @@ class AgentService:
         if self.is_mock:
             return _mock_prompt(description, design_filename, pose_filename, variation, width, height)
 
-        user_message = (
-            f"Campaign description: {description}\n"
-            f"Design reference file: {design_filename}\n"
-            f"Pose reference file: {pose_filename}\n"
-            f"Variation number: {variation} (make this variation distinct in framing "
-            f"or lighting mood from other variations of the same pair)"
-            f"{_size_hint(width, height)}"
-        )
-        response = self._client.messages.create(
-            model=self.settings.anthropic_model,
-            # _SYSTEM_PROMPT now spells out the full Image-1/Image-2 preserve
-            # vs. replace contract explicitly, which is a longer ask than the
-            # old version — bumped from 400 to leave headroom so this doesn't
-            # hit the same stop_reason=max_tokens truncation seen on
-            # score_image after its rubric grew similarly.
-            max_tokens=700,
-            system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": user_message}],
-        )
-        usage_service.record_anthropic_usage("build_prompt", self.settings.anthropic_model, response, self.settings)
-        return extract_text(response)
+        base_prompt = self._get_base_prompt(description, width, height)
+        return base_prompt + _variation_suffix(variation)
+
+    def _get_base_prompt(self, description: str, width: int | None, height: int | None) -> str:
+        """The real Claude call, cached per (description, width, height).
+        design_filename/pose_filename/variation are deliberately excluded
+        from both the cache key and the message below: Claude never sees
+        the actual reference images here, only their filenames as plain
+        text (the real images only get attached later, to Gemini/GPT, in
+        image_service.py) — and its own written prompts don't cite those
+        filenames either (confirmed against real prompt_used output, which
+        talks about "Image 1"/"Image 2" generically). So the Claude output
+        doesn't meaningfully depend on which design/pose pair it's
+        nominally "for" — calling it again per image in a batch that shares
+        one description/width/height was pure repeated cost for an answer
+        that wasn't going to change. Per-image distinctness (the one thing
+        that did vary across a batch on purpose) is handled for free
+        afterward by _variation_suffix instead.
+        """
+        key = (description, width, height)
+        with self._base_prompt_lock:
+            cached = self._base_prompt_cache.get(key)
+            if cached is not None:
+                return cached
+
+            user_message = f"Campaign description: {description}{_size_hint(width, height)}"
+            response = self._client.messages.create(
+                model=self.settings.anthropic_model,
+                # _SYSTEM_PROMPT now spells out the full Image-1/Image-2 preserve
+                # vs. replace contract explicitly, which is a longer ask than the
+                # old version — bumped from 400 to leave headroom so this doesn't
+                # hit the same stop_reason=max_tokens truncation seen on
+                # score_image after its rubric grew similarly.
+                max_tokens=700,
+                system=_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            usage_service.record_anthropic_usage("build_prompt", self.settings.anthropic_model, response, self.settings)
+            base_prompt = extract_text(response)
+            self._base_prompt_cache[key] = base_prompt
+            return base_prompt
 
     def refine_edit_prompt(
         self, user_prompt: str, filename: str, width: int | None = None, height: int | None = None

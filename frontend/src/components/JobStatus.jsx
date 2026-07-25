@@ -120,10 +120,17 @@ export default function JobStatus({ job, cancelling, onCancel, pausing, onPause,
                   {img.design_filename} + {img.pose_filename}
                 </p>
                 <div className="mt-1.5 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">
-                    <CheckCircleIcon className="h-3 w-3" />
-                    {img.score ?? "-"} pts
-                  </span>
+                  {img.passed ? (
+                    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">
+                      <CheckCircleIcon className="h-3 w-3" />
+                      {img.score ?? "-"} pts
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-800">
+                      <AlertIcon className="h-3 w-3" />
+                      {img.score ?? "-"} pts &middot; needs review
+                    </span>
+                  )}
                   <span className="text-neutral-400">attempt {img.attempts || 1}</span>
                 </div>
               </div>

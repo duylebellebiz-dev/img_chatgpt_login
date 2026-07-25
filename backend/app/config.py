@@ -55,16 +55,33 @@ class Settings(BaseSettings):
     gemini_api_price_per_image_usd: float = 0.0
 
     # Google Gemini Batch API (billed, "gemini_batch_api" provider) — same
-    # GEMINI_API_KEY/GEMINI_API_MODEL as "gemini_api" above, but calls
-    # batchGenerateContent instead of generateContent: ~50% cheaper per
-    # Google's Batch Mode pricing, in exchange for not returning an image
-    # instantly. Each image is submitted as its own batch job and polled
-    # until it finishes — see gemini_batch_api_service.py. Google's own
-    # target turnaround is up to 24h (usually much quicker); raise the
-    # timeout below if your batches are consistently slow instead of
-    # tightening the poll interval.
+    # GEMINI_API_KEY as "gemini_api" above, but calls batchGenerateContent
+    # instead of generateContent: ~50% cheaper per Google's Batch Mode
+    # pricing, in exchange for not returning an image instantly. Each image
+    # is submitted as its own batch job and polled until it finishes — see
+    # gemini_batch_api_service.py. Google's own target turnaround is up to
+    # 24h (usually much quicker); raise the timeout below if your batches
+    # are consistently slow instead of tightening the poll interval.
     gemini_batch_api_poll_interval_seconds: float = 10.0
     gemini_batch_api_timeout_seconds: float = 900.0
+    # A separate setting from gemini_api_model (rather than reusing it)
+    # because the two providers' models were briefly decoupled: community
+    # reports (discuss.ai.google.dev's "Batch API stalls indefinitely with
+    # gemini-3.1-flash-image-preview" thread, googleapis/python-genai#2175)
+    # describe gemini-3.1-flash-image as unreliable under Batch Mode, with
+    # gemini-2.5-flash-image as the fallback that reliably completes batch
+    # jobs. In practice here, 2.5's actual compositing quality (does it
+    # correctly replace only the nails while preserving the pose reference,
+    # without drifting or leaving artifacts) was noticeably worse than
+    # 3.1's — confirmed by side-by-side batch runs against the same
+    # references — while 3.1 never actually hit the "stalls forever" failure
+    # mode in that testing, only occasional quality gate misses (the same
+    # class of miss 3.1 also has via the sync gemini_api provider). So this
+    # defaults back to matching gemini_api_model for now; if Batch Mode
+    # reliability against 3.1 does become a real problem for this
+    # deployment, override this independently to gemini-2.5-flash-image
+    # without touching the sync provider's model.
+    gemini_batch_api_model: str = "gemini-3.1-flash-image"
     # Separate from gemini_api_price_per_image_usd since this provider is
     # billed at Google's discounted Batch Mode rate, not the standard rate.
     gemini_batch_api_price_per_image_usd: float = 0.0
@@ -123,14 +140,24 @@ class Settings(BaseSettings):
     # whose misses are usually a transient/stochastic bad roll (ChatGPT via
     # the free OAuth quota) can afford more automatic retries than one
     # that's billed per attempt and rarely improves on a straight re-roll
-    # (the paid Gemini API key). These replace both quality_max_retries and
-    # near_duplicate_max_retries for their named provider; every other
-    # provider (agy, gemini_batch_api, mock) keeps using the two settings
-    # above. See QualityService._resolve_retry_budgets.
+    # (the paid Gemini API key, sync or batch). These replace both
+    # quality_max_retries and near_duplicate_max_retries for their named
+    # provider; every other provider (agy, mock) keeps using the two
+    # settings above. See QualityService._resolve_retry_budgets.
     gpt_quality_max_retries: int = 3
     gpt_near_duplicate_max_retries: int = 3
     gemini_api_quality_max_retries: int = 0
     gemini_api_near_duplicate_max_retries: int = 0
+    # gemini_batch_api bills the same GEMINI_API_KEY as gemini_api above (see
+    # gemini_batch_api_service.py's module docstring) - kept as its own
+    # override rather than reusing gemini_api_* so it can be tuned
+    # independently. Ordinary low-score retries stay off like gemini_api
+    # (billed key rarely improves on a straight re-roll), but near-duplicate
+    # keeps a small budget: that failure mode (provider returns a reference
+    # image back almost unchanged) is a known, usually-correctable
+    # compositing bug with forced corrective feedback, not a stochastic miss.
+    gemini_batch_api_quality_max_retries: int = 0
+    gemini_batch_api_near_duplicate_max_retries: int = 1
 
     batch_min_images: int = 1
     batch_max_images: int = 100

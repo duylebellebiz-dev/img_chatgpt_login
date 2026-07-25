@@ -444,17 +444,33 @@ def test_resolve_retry_budgets_uses_gemini_api_override():
     assert quality._resolve_retry_budgets("gemini_api") == (0, 0)
 
 
+def test_resolve_retry_budgets_uses_gemini_batch_api_override():
+    """gemini_batch_api bills the same GEMINI_API_KEY as gemini_api (see
+    gemini_batch_api_service.py's module docstring), so it gets its own
+    override rather than falling back to the generic budget like agy/mock —
+    see QualityService._resolve_retry_budgets."""
+    settings = _settings(
+        quality_max_retries=5,
+        near_duplicate_max_retries=5,
+        gemini_batch_api_quality_max_retries=0,
+        gemini_batch_api_near_duplicate_max_retries=1,
+    )
+    quality = QualityService(settings)
+
+    assert quality._resolve_retry_budgets("gemini_batch_api") == (0, 1)
+
+
 def test_resolve_retry_budgets_falls_back_to_generic_for_other_providers():
     settings = _settings(
         quality_max_retries=2,
         near_duplicate_max_retries=1,
         gpt_quality_max_retries=99,
         gemini_api_quality_max_retries=99,
+        gemini_batch_api_quality_max_retries=99,
     )
     quality = QualityService(settings)
 
     assert quality._resolve_retry_budgets("agy") == (2, 1)
-    assert quality._resolve_retry_budgets("gemini_batch_api") == (2, 1)
     assert quality._resolve_retry_budgets(None) == (2, 1)  # falls back to settings.image_provider ("mock")
 
 
