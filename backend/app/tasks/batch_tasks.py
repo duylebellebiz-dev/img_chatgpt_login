@@ -310,7 +310,8 @@ def process_batch_job(job_id: str) -> None:
                 else:
                     # The DB row (and its last-attempt file on disk) is kept even
                     # for a failing image, for cost/debugging history. For
-                    # gemini_batch_api specifically (0 auto-retries, see
+                    # agy, gemini_api, and gemini_batch_api specifically
+                    # (0 or minimal auto-retries, see
                     # QualityService._resolve_retry_budgets), a failing image
                     # is exported anyway as long as its score clears
                     # quality_hard_failure_threshold — that setting already
@@ -319,17 +320,16 @@ def process_batch_job(job_id: str) -> None:
                     # _VISION_RUBRIC's hard-defect rule) and "just didn't
                     # clear the bar but is a real, usable photo" — so a human
                     # can review and pick from what's in the ZIP instead of
-                    # every miss being silently discarded. Every other
-                    # provider still only exports on a full pass — it gets an
-                    # automatic retry first, so a miss there is a genuine
-                    # failure, not a "human should judge it" case. See
-                    # _to_status_out in routers/batch.py for the matching
-                    # images-list filter. progress_completed still counts
-                    # every attempted image (pass or fail) so the progress
-                    # bar reaches num_images.
+                    # every miss being silently discarded. gpt/grok still only
+                    # export on a full pass — they get several automatic
+                    # retries first, so a miss there is a genuine failure, not
+                    # a "human should judge it" case. See _to_status_out in
+                    # routers/batch.py for the matching images-list filter.
+                    # progress_completed still counts every attempted image
+                    # (pass or fail) so the progress bar reaches num_images.
                     image.status = "passed" if outcome.result.passed else "needs_review"
                     should_export = outcome.result.passed or (
-                        provider == "gemini_batch_api"
+                        (provider or settings.image_provider) in ("agy", "gemini_api", "gemini_batch_api")
                         and outcome.result.overall > settings.quality_hard_failure_threshold
                     )
                     if should_export:

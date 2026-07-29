@@ -112,7 +112,7 @@ export default function UploadForm({ onSubmit, submitting }) {
   const [pairingMode, setPairingMode] = useState("cross");
   const [provider, setProvider] = useState("agy");
   const [numImages, setNumImages] = useState(20);
-  const [description, setDescription] = useState("summer luxury nail design");
+  const [description, setDescription] = useState("");
   const [size, setSize] = useState({ width: 1080, height: 1350 });
   const [campaignId, setCampaignId] = useState("");
   const [campaigns, setCampaigns] = useState([]);
@@ -200,7 +200,6 @@ export default function UploadForm({ onSubmit, submitting }) {
           rows={2}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="e.g. summer luxury nail design"
         />
         <div className="mt-2.5">
           <PromptTemplates

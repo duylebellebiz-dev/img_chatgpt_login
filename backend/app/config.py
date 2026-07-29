@@ -147,15 +147,21 @@ class Settings(BaseSettings):
     gpt_quality_max_retries: int = 3
     gpt_near_duplicate_max_retries: int = 3
     gemini_api_quality_max_retries: int = 0
-    gemini_api_near_duplicate_max_retries: int = 0
+    # Ordinary low-score retries stay off (billed key rarely improves on a
+    # straight re-roll), but near-duplicate gets 1 retry: that failure mode
+    # (provider returns a reference image back almost unchanged instead of
+    # applying the design) is a known, usually-correctable compositing bug
+    # with forced corrective feedback, not a stochastic miss — leaving this
+    # at 0 meant a near-duplicate on attempt 1 was an instant, un-retried
+    # dead end (observed in production: gemini_api returning REFERENCE 1
+    # byte-for-byte unchanged, scored 0 with no breakdown since it never even
+    # reached the vision judge — see generate_with_quality_gate).
+    gemini_api_near_duplicate_max_retries: int = 1
     # gemini_batch_api bills the same GEMINI_API_KEY as gemini_api above (see
     # gemini_batch_api_service.py's module docstring) - kept as its own
     # override rather than reusing gemini_api_* so it can be tuned
-    # independently. Ordinary low-score retries stay off like gemini_api
-    # (billed key rarely improves on a straight re-roll), but near-duplicate
-    # keeps a small budget: that failure mode (provider returns a reference
-    # image back almost unchanged) is a known, usually-correctable
-    # compositing bug with forced corrective feedback, not a stochastic miss.
+    # independently. Same reasoning as gemini_api_near_duplicate_max_retries
+    # above for why this isn't 0.
     gemini_batch_api_quality_max_retries: int = 0
     gemini_batch_api_near_duplicate_max_retries: int = 1
 

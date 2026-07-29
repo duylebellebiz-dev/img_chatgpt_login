@@ -167,13 +167,13 @@ def list_batch_jobs(
 def _to_status_out(job: BatchJob) -> BatchJobStatusOut:
     # Only images that cleared quality_pass_threshold are ever included in
     # the ZIP (see batch_tasks.py) — a failing image's row still exists for
-    # cost/debugging history. For "gemini_batch_api" specifically, that
-    # provider now runs with 0 auto-retries (see
+    # cost/debugging history. For "agy", "gemini_api", and "gemini_batch_api"
+    # specifically, those providers run with 0 or minimal auto-retries (see
     # QualityService._resolve_retry_budgets), so a failing image is a dead
     # end unless a human can see and judge it — surface those (as long as a
-    # file actually got generated) instead of hiding them like other
-    # providers, whose failures still get an automatic retry pass first.
-    show_failed = job.provider == "gemini_batch_api"
+    # file actually got generated) instead of hiding them like gpt/grok,
+    # whose failures still get several automatic retry passes first.
+    show_failed = (job.provider or get_settings().image_provider) in ("agy", "gemini_api", "gemini_batch_api")
     images = [
         GeneratedImageOut(
             id=img.id,

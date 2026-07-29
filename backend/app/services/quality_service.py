@@ -90,9 +90,14 @@ _VISION_RUBRIC = (
     "unaffected (e.g. lighting or background looking fine does not redeem a "
     "compositing failure or a visible watermark) — do not let a high score "
     "on unrelated criteria average out a hard defect into a passing score. "
-    "Respond with ONLY a JSON object like "
+    "First, in 2-4 short sentences, check each of the three hard defects "
+    "explicitly against the CANDIDATE and state whether it applies — jumping "
+    "straight to a verdict without this check is the single biggest source "
+    "of scoring errors on this task. Then, on its own line, respond with "
+    "ONLY a JSON object like "
     '{"anatomy": 90, "pose_fidelity": 88, "nail_accuracy": 85, "lighting": 88, '
-    '"background": 80, "realism": 92, "marketing_quality": 87}, no other text.'
+    '"background": 80, "realism": 92, "marketing_quality": 87}, with no other '
+    "text after it."
 )
 
 _CRITERION_FEEDBACK = {
@@ -228,9 +233,14 @@ class QualityService:
             # meaningfully harder reasoning task than the old single-image,
             # 6-key version — 300 was already tight for that and started
             # truncating responses entirely (stop_reason=max_tokens with no
-            # text block at all) once the rubric grew. The actual JSON output
-            # is small either way; this is headroom, not expected spend.
-            max_tokens=1024,
+            # text block at all) once the rubric grew. The rubric now also
+            # asks for a few sentences of hard-defect reasoning before the
+            # JSON (see _VISION_RUBRIC — a bare "answer only" instruction was
+            # observed to make the judge collapse to a false hard-defect
+            # verdict on borderline candidates; forcing it to check each
+            # defect explicitly first fixed that in side-by-side testing).
+            # 1536 is headroom for that reasoning, not expected spend.
+            max_tokens=1536,
             messages=[{"role": "user", "content": content}],
         )
         usage_service.record_anthropic_usage("score_image", self.settings.anthropic_model, response, self.settings)

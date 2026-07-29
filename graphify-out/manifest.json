@@ -5,9 +5,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "backend/app/config.py": {
-    "mtime": 1784845686.0,
-    "ast_hash": "b7d6ea66e80b83485a4d89d6a49f9977",
-    "semantic_hash": "b7d6ea66e80b83485a4d89d6a49f9977"
+    "mtime": 1785340358.0,
+    "ast_hash": "b2c1d698ed80ff156b43393878165a8c",
+    "semantic_hash": ""
   },
   "backend/app/database.py": {
     "mtime": 1783536886.0,
@@ -50,9 +50,9 @@
     "semantic_hash": "136e784c04e627d952f04d88fc21d9e2"
   },
   "backend/app/routers/batch.py": {
-    "mtime": 1784920338.0,
-    "ast_hash": "501046d846107d122c6ee990d6d662af",
-    "semantic_hash": "501046d846107d122c6ee990d6d662af"
+    "mtime": 1785339660.0,
+    "ast_hash": "5942dffbcb25252637e3ec1028ad4ea6",
+    "semantic_hash": ""
   },
   "backend/app/routers/branding.py": {
     "mtime": 1784153748.0,
@@ -100,9 +100,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "backend/app/services/agent_service.py": {
-    "mtime": 1784561834.0,
-    "ast_hash": "73025e13ef7457188c59c49ef7a05caf",
-    "semantic_hash": "73025e13ef7457188c59c49ef7a05caf"
+    "mtime": 1785001526.0,
+    "ast_hash": "a85aba7eeb3cc8d21460b3cb90ed4406",
+    "semantic_hash": ""
   },
   "backend/app/services/agy_service.py": {
     "mtime": 1784669926.0,
@@ -145,9 +145,9 @@
     "semantic_hash": "e486c0869a559361df87598dfdd9bf5b"
   },
   "backend/app/services/gemini_batch_api_service.py": {
-    "mtime": 1784845564.0,
-    "ast_hash": "438d3395e8f62ae6fbed9ef3b2d675db",
-    "semantic_hash": "438d3395e8f62ae6fbed9ef3b2d675db"
+    "mtime": 1785004104.0,
+    "ast_hash": "e2f0430131627d8d809a40d3db935ded",
+    "semantic_hash": ""
   },
   "backend/app/services/gpt_service.py": {
     "mtime": 1784759892.0,
@@ -190,9 +190,9 @@
     "semantic_hash": "f252d11e705635bb912e799072c1bcbc"
   },
   "backend/app/services/quality_service.py": {
-    "mtime": 1784916978.0,
-    "ast_hash": "863ffc971ef7be0ceb5025072da32e57",
-    "semantic_hash": "863ffc971ef7be0ceb5025072da32e57"
+    "mtime": 1785340342.0,
+    "ast_hash": "06db0143989e3b8d2df5eeb1603946ee",
+    "semantic_hash": ""
   },
   "backend/app/services/scheduler_service.py": {
     "mtime": 1784245944.0,
@@ -225,9 +225,9 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "backend/app/tasks/batch_tasks.py": {
-    "mtime": 1784920314.0,
-    "ast_hash": "710b5f91670cb7ad120f6e8512e5dcb5",
-    "semantic_hash": "710b5f91670cb7ad120f6e8512e5dcb5"
+    "mtime": 1785339650.0,
+    "ast_hash": "dad488b33daf0fdcdec92298059f3277",
+    "semantic_hash": ""
   },
   "backend/app/tasks/edit_tasks.py": {
     "mtime": 1784759278.0,
@@ -270,9 +270,9 @@
     "semantic_hash": "e7424831b4bad51c46fdb72adaa5a516"
   },
   "backend/tests/test_batch_tasks.py": {
-    "mtime": 1784845998.0,
-    "ast_hash": "73a9ed35f90948d8bf0244ad3c05974a",
-    "semantic_hash": "73a9ed35f90948d8bf0244ad3c05974a"
+    "mtime": 1785339710.0,
+    "ast_hash": "9e1cfb224098c328ee886e39aaed8715",
+    "semantic_hash": ""
   },
   "backend/tests/test_branding_api.py": {
     "mtime": 1784134300.0,
@@ -310,9 +310,9 @@
     "semantic_hash": "5d2eb1e4ab1424b4e5be2c625a8bec3f"
   },
   "backend/tests/test_gemini_batch_api_service.py": {
-    "mtime": 1784845856.0,
-    "ast_hash": "42ac41b3c059f3d7b446a477d54cbb36",
-    "semantic_hash": "42ac41b3c059f3d7b446a477d54cbb36"
+    "mtime": 1785016456.0,
+    "ast_hash": "f4700886f9fa50ba8a8e49b84c6600a1",
+    "semantic_hash": ""
   },
   "backend/tests/test_image_service_agy.py": {
     "mtime": 1784669944.0,
@@ -370,9 +370,9 @@
     "semantic_hash": "10dd5f46e2f0aea8f234a401916e4438"
   },
   "backend/tests/test_quality_service.py": {
-    "mtime": 1784845888.0,
-    "ast_hash": "dd5349e47118170fad1e024956eb7039",
-    "semantic_hash": "dd5349e47118170fad1e024956eb7039"
+    "mtime": 1785001000.0,
+    "ast_hash": "3893fa2483299db6ca2d184e1691b587",
+    "semantic_hash": ""
   },
   "backend/tests/test_scheduled_posts_api.py": {
     "mtime": 1784246168.0,
@@ -435,9 +435,9 @@
     "semantic_hash": "2ba62314e3a9bc2a8a05ec05ad848279"
   },
   "frontend/src/components/JobStatus.jsx": {
-    "mtime": 1784920456.0,
-    "ast_hash": "d1a399bce1f14e9b1dde40b76f7ba0fa",
-    "semantic_hash": "d1a399bce1f14e9b1dde40b76f7ba0fa"
+    "mtime": 1784995722.0,
+    "ast_hash": "83545a22efc9cca3623bc56e615dc5bc",
+    "semantic_hash": ""
   },
   "frontend/src/components/LoginGate.jsx": {
     "mtime": 1784137574.0,
@@ -490,9 +490,9 @@
     "semantic_hash": "c268c01de92caf8c798e5c1470487c28"
   },
   "frontend/src/components/UploadForm.jsx": {
-    "mtime": 1784828964.0,
-    "ast_hash": "382dc6a5ad3226578e6442be0ae0579b",
-    "semantic_hash": "382dc6a5ad3226578e6442be0ae0579b"
+    "mtime": 1785340976.0,
+    "ast_hash": "3e49376bff106e8a704fe04ec6eb2f11",
+    "semantic_hash": ""
   },
   "frontend/src/components/UsageMeter.jsx": {
     "mtime": 1784829120.0,
@@ -4553,5 +4553,915 @@
     "mtime": 1784522830.0,
     "ast_hash": "047fdc621d49c1de7a580c1deb455117",
     "semantic_hash": "047fdc621d49c1de7a580c1deb455117"
+  },
+  "CLAUDE.md": {
+    "mtime": 1784992494.0,
+    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
+    "semantic_hash": ""
+  },
+  "GEMINI_OAUTH_SETUP.md": {
+    "mtime": 1784669934.0,
+    "ast_hash": "95f477b310b88bf39a59fd96f6d6df3e",
+    "semantic_hash": ""
+  },
+  "backend/requirements.txt": {
+    "mtime": 1784759954.0,
+    "ast_hash": "c44fadb3b4e0ca9189650f887f7e872d",
+    "semantic_hash": ""
+  },
+  "frontend/README.md": {
+    "mtime": 1783367392.0,
+    "ast_hash": "75eb386f17caf77fd6fe3ce1d90968ee",
+    "semantic_hash": ""
+  },
+  "frontend/index.html": {
+    "mtime": 1783537596.0,
+    "ast_hash": "9392bed8b7f30df465dea58640e654fd",
+    "semantic_hash": ""
+  },
+  "ima2-gen/.github/workflows/ci.yml": {
+    "mtime": 1784522824.0,
+    "ast_hash": "fed0e668fca6f72a2a32b3082ce74515",
+    "semantic_hash": ""
+  },
+  "ima2-gen/.github/workflows/nix.yml": {
+    "mtime": 1784522824.0,
+    "ast_hash": "d95ab6804646646a5ce94c8c10e6fb82",
+    "semantic_hash": ""
+  },
+  "ima2-gen/.github/workflows/pages.yml": {
+    "mtime": 1784522824.0,
+    "ast_hash": "c92211f682f974df0b0a9bb79f5b9b7a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/.github/workflows/publish.yml": {
+    "mtime": 1784522824.0,
+    "ast_hash": "f017a2feadb02c90171a19b76fd0dfb8",
+    "semantic_hash": ""
+  },
+  "ima2-gen/AGENTS.md": {
+    "mtime": 1784522824.0,
+    "ast_hash": "af8360348bf12b03e08c8465c1e3ed97",
+    "semantic_hash": ""
+  },
+  "ima2-gen/CHANGELOG.md": {
+    "mtime": 1784522824.0,
+    "ast_hash": "5bda20555099a2ab845e8db7b3375efc",
+    "semantic_hash": ""
+  },
+  "ima2-gen/README.md": {
+    "mtime": 1784522824.0,
+    "ast_hash": "4d5b53f4b4874a03de33eafd9a9e9131",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/API.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "a2a7d8351dfb0c6b749b950b0af5c895",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/CLI.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "3b88c298336748dfd820692ebc77d7f7",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/FAQ.ko.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "46cbfe5e1e4efcf19a769cc50ec88992",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/FAQ.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "97fb39832d24fe314b48528aa6fa5f8a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/IMAGE_RESOLUTION.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "db518f86a495eea84432c6b591a626d3",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/NPX_QUICKSTART.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "a66ad6c039f704a05a6a65d9f3780d7f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/PROMPT_STUDIO.ko.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "312c4109ec427bcd1fc69704160e3961",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/PROMPT_STUDIO.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "2a55add98f5dc1809d58976b2654f68e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/README.ja.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "4b07603f7b977ea5c60a9b4be60ff638",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/README.ko.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "38f9466268d62fee513ea27cef9e983f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/README.zh-CN.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "6a136a1d6245ecb241562fedbcbf0573",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/RECOVER_OLD_IMAGES.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "10ba507952118c586ba2b3fb476d4bbd",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/grok-video-i2v-plan.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "be52d109e2ece66b508977d2580b35a2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/grok-video-i2v-research.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "a6ddb20d8af5635de5ab3067025f7b3a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/docs/migration/runtime-test-inventory.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "bc85d913380fd45d3cccda5ff32dde57",
+    "semantic_hash": ""
+  },
+  "ima2-gen/integrations/comfyui/ima2_gen_bridge/README.md": {
+    "mtime": 1784522826.0,
+    "ast_hash": "9bfe313fffb1874bce892050cfa8d5e3",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/SKILL.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "313b0d6b59c5ba6edb3739091179c0ce",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/a11y-patterns.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f8e46471086a0a5798faa5735bc77f47",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/aesthetics.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "4e2e4069827ae9ed56e2b78861ed0610",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/anti-slop.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b9994f3c4d46e54af74f019ba985ed97",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/asset-requirements.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "0de3b5733a44982d15613d5ed7dea5c4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/brand-asset-sourcing.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8c428f84341de421ac57d56ccfe2af39",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/color-system.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b5a80c8c90def6fdf839005134ab8cb6",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/consistency-locks.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "5cbf6542d01f98cfc1d2fa6fb690358f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/crud-ui.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3daa041603b75510ff24a4ae610f9dc4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/dropdown-layer.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "e8f348f2fc7cbe62145fee8ceb098aa4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/i18n-global.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "6d8a36eaf18340eb251d36635b81e53f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/iterative-design.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "327ff8833b1b163d9fa937abaee7b4f2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/korea-2026.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "d54d4e9291448f02759637c9f138190a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/layout-discipline.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8683a46b12cb567dba16149e73cce033",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/liquid-glass.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "38701b66b8735de32cdaef1dc753496a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/logo-sections.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "ffe1aee1b0e4aa7cc66cfbdd3139e2f2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/mobile-ux.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "850c3821d3e8e81615984654fd3480de",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/motion.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "1901f679712f7dd552f66e7879b3d316",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/performance-budget.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "d4725fc3a85ac50c1e4ced1c1b05b49e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/preflight-full.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "7b1530dcb35f6f65c4fcb65eb98bf8e4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/product-density.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "ae18d0c5c610d20910cb43919e915f7d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/prototype-variants.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "0bf466ea14aee882cc2a1810b7c67fc9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/reference-capture.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "d5b80d145039562dfe8b43ce6256a23a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/responsive-viewport.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "93f012ccbf575ce10241f635963ea029",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/seo-baseline.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "e0a6ab129465239d9e67c20d5528fdab",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/soft-3d-asset-gates.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "918f1b87bb3e28d7bb82cbece9b17b5c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/astro.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "7daa2fade325721dca574bf1492d590b",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/mobile-native.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8b6980d6e45a48aaa4cb1a96c29732e1",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/nextjs.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "915ba1d051ab302d09491fdc668d3bb4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/react.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "50047935394b7bff86533ee5fc3cc663",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/svelte.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "e11e93f89dfb499537f65a72e66a5844",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/stacks/vanilla.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "cbe99c7c1e43b0ce6026ed49090a5a59",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/theme-switching.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "535354f5ccd793cdef4108b32ba83344",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/top-bar.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "502254dfdcc1f6ca653d224202d74ab9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/typography-wrapping.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "32aaa9fdff04a8a9d88df69418155060",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/ux-writing-ko.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "bbf8a2b4410e383fc83781138817b300",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-front/references/visual-verification.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "55f1b668fd31a8cb3e6195c3127e1265",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/SKILL.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "10b00ba65edb167428f912051f2e0e4c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/anti-slop-judgment.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "202f00b5e48ac2088a03b839f48b1b9b",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/color-system.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f934b884f05fda02f48f869f911a3af2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/design-isms.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b50ee56f993992afa051c7b6a918493a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/design-read-example.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "ff980bfb8c3aaead43eef1b41e5f63fa",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/design-system-bootstrap.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "ac354d2449cff53ac993b1ac3f1c5530",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/favicon-logo.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "51b86cb1acd415fb933a6cbb79f8ac1c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/form-patterns.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "1bf05acdadc708b1897bb30c9881657d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/intent-discovery-ladder.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "d18f3dc60d2969e2beb8a2bbb7d81451",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/korean-design-vocabulary.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8724809d9ffac52bc1ae0a4ff1f3be9d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/layout-macrostructures.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "2243b1a4eb6f047b477c4b28e9f24f8a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/logo-trust-sections.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3da26efccc2c748424ba9b731f1143f6",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/mobile-native-ux.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "9578440dc32911f32397f343f35c4c82",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/product-personalities.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "4d72aa6b4f7564a854df1110f860761d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/responsive-nav.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "7fa956cf47e98577527b15768c32f3d0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/typography-line-breaks.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3d6a2f4066b780e6836a9bbc494a9146",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/ux-preflight.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "4016e78e0b2f8a3895c14b3c6e4dac81",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/ux-states.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "ef8a4320d44ddc41c0e69d53218d8477",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2-uiux/references/visual-hierarchy.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "34e9834d1e1fd3e5f50c57ae6b503e3f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/skills/ima2/SKILL.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "47ca490f719c43fda0200346d45d65ce",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/00-structure-hub.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "961fa558083845e4baf4cfae65f6b895",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/01-file-function-map.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "05ec919919c95309b445257eba9f50b5",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/02-command-reference.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b068bb9c041464b5413930fcdd470881",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/03-server-api.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "623fb702ec0020baa5150fb92247ef32",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/04-frontend-architecture.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "c39317dd0401e418ee5888d597a6ed08",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/05-node-mode.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "6a64173d0e600793bb653cddf39efe8d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/06-infra-operations.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "1ef837014c6ca47ec7b09931ea5c7159",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/07-devlog-map.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "9850685ffe708e238186a60f4785e6e4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/structure/AGENTS.md": {
+    "mtime": 1784522828.0,
+    "ast_hash": "40ed8e25168c4f7a2b5ac1658ad55f10",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/index.html": {
+    "mtime": 1784522828.0,
+    "ast_hash": "4f343945a0d5cfb6cfbcc5c0a8495663",
+    "semantic_hash": ""
+  },
+  "frontend/public/favicon.svg": {
+    "mtime": 1783367392.0,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": ""
+  },
+  "frontend/public/icons.svg": {
+    "mtime": 1783367392.0,
+    "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/card-news/templates/academy-lesson-square/base.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "aa996489ba124274a2c331a8cd25ddb9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/card-news/templates/academy-lesson-square/preview.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "aa996489ba124274a2c331a8cd25ddb9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/card-news/templates/clean-report-square/base.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "2b275a7cd717c001f47f34359f8ed709",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/card-news/templates/clean-report-square/preview.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "2b275a7cd717c001f47f34359f8ed709",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/logo.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "22cefd7fdc7c03b4cc643f11b8a703e8",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/phase-a-bg-cleanup-test.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "19d78dda2b2586fd76b827af3c0d5da2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshot.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "6be5b2706112b9dd5b22697fbfd83f9a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/canvas-mode-cleanup.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "baeb71281613b76214627fa12797aec1",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/classic-generate-light.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "3044bca1c2253bad124ccdb5880f462e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/multimode-sequence.png": {
+    "mtime": 1784522824.0,
+    "ast_hash": "f18242692896008b3055d97785ede5be",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/node-graph-branching.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "043d0f1ca9617cbdcebd3de5aaf802cb",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/prompt-import-dialog.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "f00da3f845848d13693a1484d450f31d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/settings-grok-connected.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "461d2aff2180f4f34c0846c625f80f8f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/settings-oauth-generation.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "44f37f0879945509ebff4222bfd45220",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/settings-workspace.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "4f5ed521f213cdee0256b8cb10d7e20a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/setup-wizard-4way.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "34544747b1a9df5993acd2d3bb01c1f5",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/style-sheet-editor.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "efc09a053b64b952b786603f071f0be0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/assets/screenshots/video-result-gallery.png": {
+    "mtime": 1784522826.0,
+    "ast_hash": "3044bca1c2253bad124ccdb5880f462e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/favicon.svg": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b3907bb4d8d52cf9b2004d2f04ace443",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/fx/blob-cluster.webp": {
+    "mtime": 1784522828.0,
+    "ast_hash": "2df0d608db995d3059b3b9e88aa46692",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/fx/blob-ribbon.webp": {
+    "mtime": 1784522828.0,
+    "ast_hash": "c2f42ad1517a77784f30197a32e4b4c7",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/fx/blob-splash.webp": {
+    "mtime": 1784522828.0,
+    "ast_hash": "e2646bb5a984d1591d8b31040eec5dc9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/fx/iridescent.webp": {
+    "mtime": 1784522828.0,
+    "ast_hash": "99eb6677094bae08e8d4812c4f3bd427",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/og.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f82f52626592650ad3d322221e65e76f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/canvas-mode-cleanup.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "baeb71281613b76214627fa12797aec1",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/classic-generate-light.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3044bca1c2253bad124ccdb5880f462e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/classic-mode.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "c8cd60a1a7d9f4650c6d7c9ad0eaf429",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/multimode-sequence.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f18242692896008b3055d97785ede5be",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/node-graph-branching.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "043d0f1ca9617cbdcebd3de5aaf802cb",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/node-mode.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "5425ddf799fbbdf783b4f179b6b306ae",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/prompt-import-dialog.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f00da3f845848d13693a1484d450f31d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/settings-grok-connected.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "461d2aff2180f4f34c0846c625f80f8f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/settings-oauth-generation.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "44f37f0879945509ebff4222bfd45220",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/settings-workspace.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "4f5ed521f213cdee0256b8cb10d7e20a",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/settings.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "965c82f0937cccd95d5ce9ff82fd0521",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/setup-wizard-4way.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "34544747b1a9df5993acd2d3bb01c1f5",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/style-sheet-editor.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "efc09a053b64b952b786603f071f0be0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/video-generation-progress.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3044bca1c2253bad124ccdb5880f462e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/site/public/screenshots/video-result-gallery.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "3044bca1c2253bad124ccdb5880f462e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/mock/assets/hero-jellyfish.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "2eed6326d50bec9959905c2ad0b34ff5",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/anime.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "95150ea5c492bed7f8e1abc0fc59d7bf",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/baroque.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "fd08d9a2f497cee1eafa06a1967b1db2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/blue-hour.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "03efb3351f347181795360dcfcde8ede",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/bullet-time.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "2193d05803bda4ec63b42034189859c9",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/candlelight.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "6fdd374b3d84b6d41a8d26c5bd0b19a2",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/chiaroscuro.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "be21634bcccef7c2c5aa2cea5a4c9d13",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/cinematic.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "440b231ecd7f9258515a3333489bd1f1",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/crane-down.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "657b3f96f0f18d3d0681242cab425dc3",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/crane-up.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8c4e908a5cc0d84840d5eca4e5e16670",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/crash-zoom.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b818ae366200d2c085e4633c1163f339",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/cyberpunk.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "11372e63990951340a605a2389f9c74c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/dolly-in.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "7a0fccb98924c21df5706c9c584de766",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/dolly-out.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "668611d878e772c657da353f369d8f90",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/dolly-zoom.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "8f504618f0ceae02415d843494bd8c0e",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/fpv-drone.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "1b01d4fa3e83a19829182da3617ce599",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/golden-hour.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "f6ae7d5666f4413509817d2cf63b5af4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/handheld.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "825fcaeac510aeab5c2c2744d743b008",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/hard-rim.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "0b26d3cc6d84a862d95288830389c2f7",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/hyperlapse.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "df503dd27294647fce8e685e240ef8f8",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/minimalist.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "b5207285c2bdd433ace7fb9910de95b4",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/moonlight.png": {
+    "mtime": 1784522828.0,
+    "ast_hash": "2afcf19fab7514def90c83fc422f7395",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/neon-glow.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "30dbd064a3b574bef0ceaaa1bb67704f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/noir.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "f8e18c31add3290e17fe8127d24fdee3",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/oil-painting.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "540dbed1977e710192b00a21ec3cb476",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/orbit-left.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "e23c4532a731caafde857fb5d256fa79",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/orbit-right.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "2965519e62a6951d97c4b59b02838505",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/overcast-diffuse.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "9ffb4bb67f24dcc135832338b704d288",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/pan-left.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "e05746927980e00bcec3754e89ce818d",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/pan-right.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "91b726f0659957b52963f2a43f23af06",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/pencil-sketch.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "a94b0b99f51fdd7a013de1fcb365df79",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/photorealistic.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "a275a4f6141b5d49dcb2b044b89ae17c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/pixel-art.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "2b662605c662870f34db1f8b749908c6",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/pop-art.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "d90cf8917225d483a0640d29507ddd1c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/static.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "7f4ff176f2d3a5910bae0bceff251ef7",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/studio-softbox.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "bf22cf62c4ca714756cf999d3a21979c",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/surreal.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "2d43da26ac0b278e578eb10a18f91cb7",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/tilt-down.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "1fd9b6f82fc72367243e5cef21f68b09",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/tilt-up.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "445e8cdccd005af51557d2f6326f6b84",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/tracking-left.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "d1cb63667980feb8a3c4a9ecf2f19dd0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/tracking-right.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "c7c8ffc695592f97eee8c1e5c88e0091",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/ukiyo-e.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "630ee730abe3dd91b121614b77826237",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/vaporwave.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "2908dac76e140648a29fa4da38ad2f0f",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/volumetric-fog.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "972fde55959a2c9581348b04a83d7fa0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/watercolor.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "ef9fe12619a08c8b610a5be829598da0",
+    "semantic_hash": ""
+  },
+  "ima2-gen/ui/public/presets/thumbs/whip-pan.png": {
+    "mtime": 1784522830.0,
+    "ast_hash": "123743efbd061d6ed28d771d210108b6",
+    "semantic_hash": ""
   }
 }

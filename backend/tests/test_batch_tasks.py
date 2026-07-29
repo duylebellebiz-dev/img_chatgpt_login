@@ -166,6 +166,59 @@ def test_gemini_batch_api_still_exports_a_failing_image_above_hard_failure_thres
         assert len(zf.namelist()) == 2  # exported despite failing, unlike other providers
 
 
+def test_agy_still_exports_a_failing_image_above_hard_failure_threshold(
+    db_session, tiny_png_bytes, tmp_path, settings_override, monkeypatch
+):
+    """Same fix as gemini_batch_api above (see
+    test_gemini_batch_api_still_exports_a_failing_image_above_hard_failure_threshold),
+    extended to "agy" (the free Antigravity CLI OAuth provider) and
+    "gemini_api" — both routinely ran with 0-2 auto-retries against a strict
+    quality_pass_threshold, so nearly every failing image used to be
+    silently discarded from both the ZIP and the images list, leaving users
+    with an empty export despite a "completed" job."""
+    from app.models.db_models import GeneratedImage
+    from app.services.image_service import ImageService
+    from app.tasks.batch_tasks import process_batch_job
+
+    settings_override(
+        quality_pass_threshold=101,  # never passes
+        quality_max_retries=0,
+        quality_hard_failure_threshold=30,  # mock scores are always 65-100 (see _mock_score), well above this
+    )
+    job = _make_job(db_session, tiny_png_bytes, tmp_path, num_images=2)
+    job.provider = "agy"
+    db_session.commit()
+
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (4, 4), color=(0, 255, 0)).save(buf, format="PNG")
+    generated_bytes = buf.getvalue()
+
+    def fake_generate(self, design_path, pose_path, prompt, variation, out_path, **kwargs):
+        out_path.write_bytes(generated_bytes)
+        return out_path, "image/png"
+
+    monkeypatch.setattr(ImageService, "generate_image", fake_generate)
+
+    process_batch_job(job.id)
+
+    db_session.refresh(job)
+    images = db_session.query(GeneratedImage).filter_by(batch_job_id=job.id).all()
+
+    assert job.status == "completed"
+    assert len(images) == 2
+    for img in images:
+        assert img.status == "needs_review"
+        assert img.passed is False
+        assert img.score > 30
+
+    with zipfile.ZipFile(job.zip_path) as zf:
+        assert len(zf.namelist()) == 2  # exported despite failing, same as gemini_batch_api
+
+
 def test_cancelled_job_is_not_processed(db_session, tiny_png_bytes, tmp_path, settings_override):
     from app.models.db_models import GeneratedImage
     from app.tasks.batch_tasks import process_batch_job
